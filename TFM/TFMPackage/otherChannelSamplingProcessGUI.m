@@ -1,276 +1,329 @@
 function varargout = otherChannelSamplingProcessGUI(varargin)
 % otherChannelSamplingProcessGUI
-% GUI for OtherChannelSamplingProcess
+% GUI for OtherChannelSamplingProcess (TFMPackage optional step).
 %
-% This GUI is implemented programmatically (no .fig) to avoid GUIDE/FIG
-% compatibility issues across MATLAB versions.
+% Fields supported:
+%   - ChannelIndex (scalar)
+%   - Measure: 'mean' or 'median'
+%   - ComputeDFF0 (true/false)
+%   - BaselineFrames (vector or range string)
 %
-% Expected invocation pattern from packageGUI:
-%   otherChannelSamplingProcessGUI('mainFig', hMain, 'procID', procID)
+% This GUI is created programmatically (no .fig needed) but follows
+% GUIDE/gui_mainfcn conventions so it works with packageGUI "Set" button.
 %
-% Sangyoon Han lab, 2026
+% Sangyoon Han / patched by ChatGPT
 
-% --- Standard GUIDE-style state struct so packageGUI can call it ---
-
-gui_Singleton = 1;
+% ===== Begin initialization code (GUIDE-like) =====
+gui_Singleton = 0;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
                    'gui_OpeningFcn', @otherChannelSamplingProcessGUI_OpeningFcn, ...
                    'gui_OutputFcn',  @otherChannelSamplingProcessGUI_OutputFcn, ...
                    'gui_LayoutFcn',  @otherChannelSamplingProcessGUI_LayoutFcn, ...
                    'gui_Callback',   []);
-
-% NOTE: packageGUI calls this GUI with name/value pairs like
-%   otherChannelSamplingProcessGUI('mainFig', hMain, procID)
-% Do NOT interpret the first string argument as a callback.
-
-gui_Options = struct('syscolorfig', false);  % required by some MATLAB gui_mainfcn variants
-
+if nargin && ischar(varargin{1})
+    gui_State.gui_Callback = str2func(varargin{1});
+end
 if nargout
-    [varargout{1:nargout}] = gui_mainfcn(gui_State, varargin{:}, gui_Options);
+    [varargout{1:nargout}] = gui_mainfcn(gui_State, varargin{:});
 else
-    gui_mainfcn(gui_State, varargin{:}, gui_Options);
+    gui_mainfcn(gui_State, varargin{:});
 end
+% ===== End initialization code =====
+
+
+% --- Executes just before otherChannelSamplingProcessGUI is made visible.
+function otherChannelSamplingProcessGUI_OpeningFcn(hObject, eventdata, handles, varargin)
+
+% This handles embedding into packageGUI when called as:
+% otherChannelSamplingProcessGUI('mainFig',handles.figure1,procID)
+processGUI_OpeningFcn(hObject, eventdata, handles, varargin{:});
+
+% Load current process params
+userData  = get(handles.figure1, 'UserData');
+funParams = userData.crtProc.funParams_;
+
+% ---- Defaults if missing ----
+if ~isfield(funParams,'ChannelIndex') || isempty(funParams.ChannelIndex)
+    funParams.ChannelIndex = 1;
 end
-
-%% ===================== LAYOUT =====================
-function hFig = otherChannelSamplingProcessGUI_LayoutFcn(varargin)
-
-hFig = figure('Units','pixels', ...
-    'Position',[300 200 620 360], ...
-    'MenuBar','none', ...
-    'ToolBar','none', ...
-    'NumberTitle','off', ...
-    'Name','Other channel sampling', ...
-    'Color','w', ...
-    'Tag','figure1', ...
-    'Visible','off');
-
-% Title
-uicontrol('Parent',hFig,'Style','text','String','Other channel sampling (optional Step 6)', ...
-    'Units','pixels','Position',[20 325 580 22], 'HorizontalAlignment','left', ...
-    'FontWeight','bold','BackgroundColor','w','Tag','text_processName');
-
-% Output dir
-uicontrol('Parent',hFig,'Style','text','String','Output directory:', ...
-    'Units','pixels','Position',[20 285 120 18],'HorizontalAlignment','left','BackgroundColor','w');
-
-uicontrol('Parent',hFig,'Style','edit','String','', ...
-    'Units','pixels','Position',[150 280 360 26],'HorizontalAlignment','left', ...
-    'BackgroundColor','white','Tag','edit_outputDir');
-
-uicontrol('Parent',hFig,'Style','pushbutton','String','Browse...', ...
-    'Units','pixels','Position',[520 280 80 26],'Tag','pushbutton_browse', ...
-    'Callback',@pushbutton_browse_Callback);
-
-% Channel index
-uicontrol('Parent',hFig,'Style','text','String','Other channel index:', ...
-    'Units','pixels','Position',[20 240 140 18],'HorizontalAlignment','left','BackgroundColor','w');
-
-uicontrol('Parent',hFig,'Style','edit','String','1', ...
-    'Units','pixels','Position',[170 235 60 26],'BackgroundColor','white','Tag','edit_channelIndex');
-
-% Mask source
-uicontrol('Parent',hFig,'Style','text','String','Mask source:', ...
-    'Units','pixels','Position',[20 200 140 18],'HorizontalAlignment','left','BackgroundColor','w');
-
-uicontrol('Parent',hFig,'Style','popupmenu','String',{'MaskRefinementProcess','MaskIntersectionProcess','None (whole FOV)'}, ...
-    'Units','pixels','Position',[170 195 220 26],'BackgroundColor','white','Tag','popup_maskSource');
-
-uicontrol('Parent',hFig,'Style','text','String','Mask channel index:', ...
-    'Units','pixels','Position',[410 200 120 18],'HorizontalAlignment','left','BackgroundColor','w');
-
-uicontrol('Parent',hFig,'Style','edit','String','1', ...
-    'Units','pixels','Position',[535 195 60 26],'BackgroundColor','white','Tag','edit_maskChan');
-
-% Statistics
-uicontrol('Parent',hFig,'Style','text','String','Statistic:', ...
-    'Units','pixels','Position',[20 160 140 18],'HorizontalAlignment','left','BackgroundColor','w');
-
-uicontrol('Parent',hFig,'Style','popupmenu','String',{'mean','median','sum'}, ...
-    'Units','pixels','Position',[170 155 120 26],'BackgroundColor','white','Tag','popup_stat');
-
-% dF/F0
-uicontrol('Parent',hFig,'Style','checkbox','String','Compute dF/F0 (per ROI)', ...
-    'Units','pixels','Position',[20 118 220 22],'BackgroundColor','w','Tag','checkbox_doDFF0');
-
-uicontrol('Parent',hFig,'Style','text','String','Baseline frames (e.g., 1:10):', ...
-    'Units','pixels','Position',[260 120 200 18],'HorizontalAlignment','left','BackgroundColor','w');
-
-uicontrol('Parent',hFig,'Style','edit','String','1:10', ...
-    'Units','pixels','Position',[465 115 130 26],'BackgroundColor','white','Tag','edit_baselineFrames');
-
-% Buttons
-uicontrol('Parent',hFig,'Style','pushbutton','String','Done', ...
-    'Units','pixels','Position',[420 20 80 30],'Tag','pushbutton_done', ...
-    'Callback',@pushbutton_done_Callback);
-
-uicontrol('Parent',hFig,'Style','pushbutton','String','Cancel', ...
-    'Units','pixels','Position',[515 20 80 30],'Tag','pushbutton_cancel', ...
-    'Callback',@pushbutton_cancel_Callback);
-
-% Label expected by processGUI helpers
-uicontrol('Parent',hFig,'Style','text','String','', ...
-    'Units','pixels','Position',[20 15 360 18],'HorizontalAlignment','left','BackgroundColor','w','Tag','text_copyright');
-
+if ~isfield(funParams,'Measure') || isempty(funParams.Measure)
+    funParams.Measure = 'mean';
+end
+if ~isfield(funParams,'ComputeDFF0') || isempty(funParams.ComputeDFF0)
+    funParams.ComputeDFF0 = false;
+end
+if ~isfield(funParams,'BaselineFrames') || isempty(funParams.BaselineFrames)
+    funParams.BaselineFrames = 1;
 end
 
-%% ===================== OPENING =====================
-function otherChannelSamplingProcessGUI_OpeningFcn(hObject, ~, handles, varargin)
+% Populate UI
+set(handles.edit_channelIndex, 'String', num2str(funParams.ChannelIndex));
 
-% Wire up the standard MovieManagement userData/crtProc machinery.
-processGUI_OpeningFcn(hObject, [], handles, varargin{:}, ...
-    'initChannel', 1, ...
-    'initProcess', @OtherChannelSamplingProcess);
-
-handles = guidata(hObject);
-proc = handles.userData.crtProc;
-fp = proc.funParams_;
-
-% Populate fields
-setSafe(handles,'edit_outputDir', fp.OutputDirectory);
-setSafe(handles,'edit_channelIndex', num2str(fp.ChannelIndex));
-
-% Mask selection
-maskChoices = getPopupChoices(handles,'popup_maskSource');
-if ~isempty(fp.MaskProcessName)
-    idx = find(strcmpi(maskChoices, fp.MaskProcessName), 1);
-    if isempty(idx), idx = 1; end
+m = lower(string(funParams.Measure));
+if m == "median"
+    set(handles.popup_measure, 'Value', 2);
 else
-    idx = 3; % None
+    set(handles.popup_measure, 'Value', 1);
 end
-set(handles.popup_maskSource,'Value',idx);
 
-setSafe(handles,'edit_maskChan', num2str(fp.MaskChannelIndex));
+set(handles.checkbox_dff0, 'Value', logical(funParams.ComputeDFF0));
 
-% Statistic
-statChoices = getPopupChoices(handles,'popup_stat');
-idx = find(strcmpi(statChoices, fp.Statistic), 1);
-if isempty(idx), idx = 1; end
-set(handles.popup_stat,'Value',idx);
+set(handles.edit_baselineFrames, 'String', framesToString(funParams.BaselineFrames));
 
-% dF/F0
-set(handles.checkbox_doDFF0,'Value', logical(fp.DoDFF0));
+% Enable/disable baseline entry based on dF/F0
+toggleBaselineUI(handles);
 
-% Baseline frames
-bfStr = '1:10';
-if isnumeric(fp.BaselineFrames) && ~isempty(fp.BaselineFrames)
-    bf = fp.BaselineFrames(:)';
-    if numel(bf)>=2 && all(diff(bf)==1)
-        bfStr = sprintf('%d:%d', bf(1), bf(end));
-    else
-        bfStr = mat2str(bf);
-    end
-end
-setSafe(handles,'edit_baselineFrames', bfStr);
-
-set(hObject,'Visible','on');
-
+% Update handles
+handles.output = hObject;
+set(hObject,'UserData',userData);
 guidata(hObject, handles);
-end
 
-%% ===================== OUTPUT =====================
+
 function varargout = otherChannelSamplingProcessGUI_OutputFcn(~, ~, handles)
 varargout{1} = handles.output;
-end
 
-%% ===================== CALLBACKS =====================
-function pushbutton_browse_Callback(hObject, ~)
-handles = guidata(hObject);
-startDir = get(handles.edit_outputDir,'String');
-if isempty(startDir) || exist(startDir,'dir')~=7
-    startDir = pwd;
-end
-p = uigetdir(startDir, 'Select output directory');
-if isequal(p,0), return; end
-set(handles.edit_outputDir,'String',p);
-end
 
-function pushbutton_done_Callback(hObject, ~)
-handles = guidata(hObject);
-proc = handles.userData.crtProc;
-fp = proc.funParams_;
+% --- Executes on button press in pushbutton_done.
+function pushbutton_done_Callback(~, ~, handles)
 
-% Output directory
-outDir = strtrim(get(handles.edit_outputDir,'String'));
-if isempty(outDir)
-    outDir = fp.OutputDirectory;
-end
-fp.OutputDirectory = outDir;
+userData = get(handles.figure1, 'UserData');
+funParams = userData.crtProc.funParams_;
 
-% Channel index
-ch = str2double(get(handles.edit_channelIndex,'String'));
-if ~isfinite(ch) || ch < 1
-    errordlg('Other channel index must be a positive integer.','Invalid input');
+% ---- ChannelIndex ----
+chStr = strtrim(get(handles.edit_channelIndex,'String'));
+chVal = str2double(chStr);
+if ~isfinite(chVal) || chVal < 1 || mod(chVal,1) ~= 0
+    errordlg('ChannelIndex must be a positive integer (e.g., 1).','Invalid input');
     return;
 end
-fp.ChannelIndex = round(ch);
+funParams.ChannelIndex = chVal;
 
-% Mask source
-maskChoices = getPopupChoices(handles,'popup_maskSource');
-maskSel = maskChoices{get(handles.popup_maskSource,'Value')};
-if contains(lower(maskSel),'none')
-    fp.MaskProcessName = '';
+% ---- Measure ----
+measList = get(handles.popup_measure,'String');
+measVal  = get(handles.popup_measure,'Value');
+if iscell(measList)
+    funParams.Measure = lower(strtrim(measList{measVal}));
 else
-    fp.MaskProcessName = maskSel;
+    % older MATLAB might return char array
+    funParams.Measure = lower(strtrim(measList(measVal,:)));
+end
+if ~ismember(funParams.Measure, {'mean','median'})
+    funParams.Measure = 'mean';
 end
 
-% Mask channel
-mc = str2double(get(handles.edit_maskChan,'String'));
-if ~isfinite(mc) || mc < 1
-    mc = fp.MaskChannelIndex;
-end
-fp.MaskChannelIndex = round(mc);
+% ---- dF/F0 ----
+funParams.ComputeDFF0 = logical(get(handles.checkbox_dff0,'Value'));
 
-% Statistic
-statChoices = getPopupChoices(handles,'popup_stat');
-fp.Statistic = statChoices{get(handles.popup_stat,'Value')};
-
-% dF/F0 + baseline frames
-fp.DoDFF0 = logical(get(handles.checkbox_doDFF0,'Value'));
-
+% ---- Baseline frames ----
 bfStr = strtrim(get(handles.edit_baselineFrames,'String'));
-if isempty(bfStr)
-    bf = fp.BaselineFrames;
-else
+if funParams.ComputeDFF0
     try
-        bf = eval(bfStr); %#ok<EVLDIR>
-    catch
-        errordlg('Baseline frames must be a valid MATLAB expression (e.g., 1:10).','Invalid input');
+        funParams.BaselineFrames = parseFrameSpec(bfStr);
+        if isempty(funParams.BaselineFrames)
+            error('Empty baseline frames.');
+        end
+    catch ME
+        errordlg(sprintf('BaselineFrames is invalid.\n\nExamples:\n  1:10\n  1,2,3\n  5-12\n\nError: %s', ME.message), ...
+            'Invalid BaselineFrames');
         return;
     end
+else
+    % Keep whatever, but normalize to something sane
+    if isempty(bfStr)
+        funParams.BaselineFrames = 1;
+    else
+        try
+            funParams.BaselineFrames = parseFrameSpec(bfStr);
+            if isempty(funParams.BaselineFrames), funParams.BaselineFrames = 1; end
+        catch
+            funParams.BaselineFrames = 1;
+        end
+    end
 end
-if ~isnumeric(bf) || isempty(bf)
-    errordlg('Baseline frames must evaluate to a numeric vector.','Invalid input');
+
+% ---- Apply ----
+try
+    userData.crtProc.setPara(funParams);
+    userData.crtProc.sanityCheck();
+catch ME
+    errordlg(sprintf('Failed to apply parameters:\n\n%s', ME.message), 'Process parameter error');
     return;
 end
-fp.BaselineFrames = unique(round(bf(:)'));
 
-% Apply (writes back into MD + refresh main GUI)
-proc.setPara(fp);
-processGUI_ApplyFcn(hObject, [], handles, fp);
+set(handles.figure1,'UserData',userData);
+guidata(handles.figure1,handles);
 
 delete(handles.figure1);
-end
 
-function pushbutton_cancel_Callback(hObject, ~)
-handles = guidata(hObject);
+
+% --- Executes on button press in pushbutton_cancel.
+function pushbutton_cancel_Callback(~, ~, handles)
 delete(handles.figure1);
-end
 
-%% ===================== small helpers =====================
-function setSafe(handles, field, val)
-if isfield(handles, field)
-    if isempty(val), val = ''; end
-    set(handles.(field), 'String', char(string(val)));
-end
-end
 
-function choices = getPopupChoices(handles, field)
-raw = get(handles.(field), 'String');
-if ischar(raw)
-    choices = cellstr(raw);
+% --- Executes on checkbox toggle
+function checkbox_dff0_Callback(~, ~, handles)
+toggleBaselineUI(handles);
+
+
+function toggleBaselineUI(handles)
+useDFF0 = logical(get(handles.checkbox_dff0,'Value'));
+if useDFF0
+    set(handles.edit_baselineFrames,'Enable','on');
+    set(handles.text_baselineFrames,'Enable','on');
 else
-    choices = raw;
+    set(handles.edit_baselineFrames,'Enable','off');
+    set(handles.text_baselineFrames,'Enable','off');
 end
+
+
+% ===== Layout function (programmatic; no .fig needed) =====
+function h1 = otherChannelSamplingProcessGUI_LayoutFcn(varargin)
+
+% Create figure
+h1 = figure('Units','pixels', ...
+    'Position',[200 200 420 240], ...
+    'MenuBar','none', ...
+    'Name','Other Channel Sampling', ...
+    'NumberTitle','off', ...
+    'Color',get(0,'defaultUicontrolBackgroundColor'), ...
+    'Tag','figure1', ...
+    'Visible','off', ...
+    'HandleVisibility','callback', ...
+    'IntegerHandle','off');
+
+% GUIDEOptions to avoid syscolorfig errors in some MATLAB/GUI stacks
+try
+    setappdata(h1,'GUIDEOptions',struct( ...
+        'active_h',         [], ...
+        'taginfo',          struct(), ...
+        'override',         0, ...
+        'release',          13, ...
+        'resize',           'none', ...
+        'accessibility',    'on', ...
+        'syscolorfig',      1)); %#ok<STRNU>
+catch
 end
+
+% ---- Controls ----
+uicontrol('Parent',h1,'Style','text', ...
+    'Units','pixels','Position',[20 190 120 18], ...
+    'String','ChannelIndex','HorizontalAlignment','left');
+
+uicontrol('Parent',h1,'Style','edit', ...
+    'Units','pixels','Position',[150 188 80 24], ...
+    'String','1','BackgroundColor','white', ...
+    'Tag','edit_channelIndex');
+
+uicontrol('Parent',h1,'Style','text', ...
+    'Units','pixels','Position',[20 155 120 18], ...
+    'String','Measure','HorizontalAlignment','left');
+
+uicontrol('Parent',h1,'Style','popupmenu', ...
+    'Units','pixels','Position',[150 152 120 26], ...
+    'String',{'mean','median'}, ...
+    'BackgroundColor','white', ...
+    'Tag','popup_measure');
+
+uicontrol('Parent',h1,'Style','checkbox', ...
+    'Units','pixels','Position',[20 118 220 20], ...
+    'String','Compute dF/F0', ...
+    'Value',0, ...
+    'Tag','checkbox_dff0', ...
+    'Callback',@checkbox_dff0_Callback);
+
+uicontrol('Parent',h1,'Style','text', ...
+    'Units','pixels','Position',[20 85 120 18], ...
+    'String','BaselineFrames','HorizontalAlignment','left', ...
+    'Tag','text_baselineFrames');
+
+uicontrol('Parent',h1,'Style','edit', ...
+    'Units','pixels','Position',[150 82 180 24], ...
+    'String','1:10', ...
+    'BackgroundColor','white', ...
+    'Tag','edit_baselineFrames');
+
+uicontrol('Parent',h1,'Style','pushbutton', ...
+    'Units','pixels','Position',[210 20 90 30], ...
+    'String','Done', ...
+    'Tag','pushbutton_done', ...
+    'Callback',@pushbutton_done_Callback);
+
+uicontrol('Parent',h1,'Style','pushbutton', ...
+    'Units','pixels','Position',[310 20 90 30], ...
+    'String','Cancel', ...
+    'Tag','pushbutton_cancel', ...
+    'Callback',@pushbutton_cancel_Callback);
+
+% Create handles structure like GUIDE
+handles = guihandles(h1);
+guidata(h1, handles);
+
+set(h1,'Visible','on');
+
+
+% ===== Helpers =====
+function s = framesToString(frames)
+if isnumeric(frames)
+    frames = frames(:)';
+    if numel(frames) >= 2 && all(diff(frames)==1)
+        s = sprintf('%d:%d', frames(1), frames(end));
+    else
+        s = strtrim(sprintf('%d,', frames));
+        if ~isempty(s), s(end) = []; end
+    end
+else
+    s = char(string(frames));
+end
+
+function v = parseFrameSpec(spec)
+% Accept:
+%   "1:10"
+%   "5-12"
+%   "1,2,3"
+%   "1 2 3"
+spec = strtrim(spec);
+if isempty(spec)
+    v = [];
+    return;
+end
+
+% normalize hyphen range
+spec = regexprep(spec,'(\d)\s*-\s*(\d)','$1:$2');
+
+% allow spaces as commas
+spec = regexprep(spec,'\s+',',');
+
+% safety: only allow digits, commas, colons
+if ~isempty(regexp(spec,'[^0-9,:]','once'))
+    error('BaselineFrames contains invalid characters.');
+end
+
+% Evaluate safely
+parts = split(string(spec), ",");
+v = [];
+for i=1:numel(parts)
+    p = strtrim(parts(i));
+    if p == "", continue; end
+    if contains(p, ":")
+        rr = split(p, ":");
+        if numel(rr) ~= 2, error('Invalid range: %s', p); end
+        a = str2double(rr(1)); b = str2double(rr(2));
+        if ~isfinite(a) || ~isfinite(b) || a<1 || b<1 || mod(a,1)~=0 || mod(b,1)~=0
+            error('Invalid range endpoints: %s', p);
+        end
+        if b < a
+            v = [v, a:-1:b]; %#ok<AGROW>
+        else
+            v = [v, a:b]; %#ok<AGROW>
+        end
+    else
+        a = str2double(p);
+        if ~isfinite(a) || a<1 || mod(a,1)~=0
+            error('Invalid frame index: %s', p);
+        end
+        v = [v, a]; %#ok<AGROW>
+    end
+end
+v = unique(v(:)','stable');
