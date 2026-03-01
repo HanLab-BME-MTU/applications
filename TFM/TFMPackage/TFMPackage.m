@@ -82,8 +82,7 @@ classdef TFMPackage < Package
             if nargin==0, index=1:numel(TFMProcConstr); end
             procConstr=TFMProcConstr(index);
         end
-            procConstr=TFMProcConstr(index);
-        end
+    
         function classes = getProcessClassNames(index)
             TFMClasses = {
                 'StageDriftCorrectionProcess',...
@@ -95,8 +94,6 @@ classdef TFMPackage < Package
                 'OtherChannelSamplingProcess'};
 
             if nargin==0, index=1:numel(TFMClasses); end
-            classes=TFMClasses(index);
-        end
             classes=TFMClasses(index);
         end
     end
