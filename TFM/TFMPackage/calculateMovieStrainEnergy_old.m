@@ -68,40 +68,6 @@ if feature('ShowFigureWindows')
 end
 nFrames = movieData.nFrames_;
 
-%% ---- Calcium quantification (optional) ----
-% If you want calcium readouts (e.g., Fluo-4) alongside traction:
-% pass paramsIn.CaChannel (1-based) and optionally CaBaselineFrames, CaF0Method.
-% NOTE: Per-cell Ca metrics are computed on the same binary mask used for traction.
-caChan = [];
-if isfield(p,'CaChannel') && ~isempty(p.CaChannel)
-    caChan = p.CaChannel;
-elseif isfield(p,'CaChannelIndex') && ~isempty(p.CaChannelIndex)
-    caChan = p.CaChannelIndex;
-end
-computeCa = ~isempty(caChan) && isnumeric(caChan) && isscalar(caChan) && caChan>=1 && caChan<=movieData.nChannels_;
-
-% Baseline frames for dF/F0 (global, across all cell pixels)
-if isfield(p,'CaBaselineFrames') && ~isempty(p.CaBaselineFrames)
-    baseFrames = p.CaBaselineFrames(:)';
-else
-    baseFrames = 1:min(10,nFrames);
-end
-baseFrames = baseFrames(baseFrames>=1 & baseFrames<=nFrames);
-
-if isfield(p,'CaF0Method') && ~isempty(p.CaF0Method)
-    caF0Method = lower(string(p.CaF0Method));
-else
-    caF0Method = "median"; % 'median' (robust) or 'mean'
-end
-
-% Per-frame calcium summary (global across all cell pixels)
-Ca_allCells_mean = nan(nFrames,1);
-Ca_allCells_dff0 = nan(nFrames,1);
-
-% Per-frame per-cell metrics (variable number of cells per frame)
-CellMetrics = cell(nFrames,1); % each entry is a table (one row per cell)
-
-
 %% Load the forcefield
 TFMPackage = movieData.getPackage(movieData.getPackageIndex('TFMPackage'));
 iForceFieldProc = 4;
@@ -424,82 +390,6 @@ for ii=1:nFrames
 %             Ibw = padarray(maskCell, [maxY, maxX]);
             maskCell = imwarp(maskCell, Tr,'OutputView',ref_obj);
         end
-
-        % ---- Optional calcium image (warp same as mask, so pixels align) ----
-        Ica = [];
-        if computeCa
-            try
-                Ica = movieData.getChannel(caChan).loadImage(ii);
-            catch
-                try
-                    Ica = movieData.channels_(caChan).loadImage(ii);
-                catch
-                    Ica = [];
-                end
-            end
-            if ~isempty(Ica)
-                Ica = double(Ica);
-                if existSDC
-                    % warp calcium image to match unshifted traction/displacement maps
-                    Ica = imwarp(Ica, Tr, 'OutputView', ref_obj, 'Interp', 'linear');
-                end
-            end
-        end
-
-        % ---- Per-cell metrics from multiple segmentations (connected components) ----
-        % ThresholdProcess produces a binary mask that may contain multiple cells.
-        % We compute traction / strain energy per connected component (cell) each frame.
-        if isfield(p,'minCellAreaPix') && ~isempty(p.minCellAreaPix)
-            minCellAreaPix = p.minCellAreaPix;
-        else
-            minCellAreaPix = 200; % default: adjust as needed
-        end
-
-        L = bwlabel(maskCell);
-        statsC = regionprops(L, 'PixelIdxList','Area','Centroid');
-        keep = find([statsC.Area] >= minCellAreaPix);
-        statsC = statsC(keep);
-
-        nCellThisFrame = numel(statsC);
-        if nCellThisFrame>0
-            cellArea_um2   = nan(nCellThisFrame,1);
-            cellSE_fJ      = nan(nCellThisFrame,1);
-            cellSEDens     = nan(nCellThisFrame,1);
-            cellTotForce_nN= nan(nCellThisFrame,1);
-            cellAvgTr_Pa   = nan(nCellThisFrame,1);
-            cellMeanCa     = nan(nCellThisFrame,1);
-
-            for cc = 1:nCellThisFrame
-                pix = statsC(cc).PixelIdxList;
-                cellArea_um2(cc) = numel(pix)*areaConvert;
-
-                tPix = curTMap(pix);
-                dPix = curDMap(pix);
-
-                cellSE_fJ(cc) = 0.5*sum(dPix(:).*tPix(:))*(pixSize_mu*1e-6)^3*1e15;
-                cellSEDens(cc)= cellSE_fJ(cc)/cellArea_um2(cc)*1e3;
-
-                cellTotForce_nN(cc) = sum(tPix(:))*areaConvert*1e-3;
-                cellAvgTr_Pa(cc)    = mean(tPix(:));
-
-                if computeCa && ~isempty(Ica)
-                    cellMeanCa(cc) = mean(Ica(pix),'omitnan');
-                end
-            end
-
-            % Store per-frame table (variable number of cells)
-            CellMetrics{ii} = table(cellSE_fJ, cellArea_um2, cellSEDens, ...
-                                    cellTotForce_nN, cellAvgTr_Pa, cellMeanCa, ...
-                                    'VariableNames', {'SE_fJ','Area_um2','SEDensity_Jm2', ...
-                                                      'TotalForce_nN','AvgTraction_Pa','CaMean'});
-        else
-            CellMetrics{ii} = table();
-        end
-
-        % Global calcium mean across all cell pixels (union mask)
-        if computeCa && ~isempty(Ica)
-            Ca_allCells_mean(ii) = mean(Ica(maskCell),'omitnan');
-        end
         % mask for band from edge
         iMask = imcomplement(maskCell);
         distFromEdge = bwdist(iMask);
@@ -602,28 +492,6 @@ for ii=1:nFrames
         waitbar(ii/nFrames,wtBar,sprintf([logMsg timeMsg(tj*(nFrames-ii)/ii)]));
     end
 end
-
-%% ---- Finalize calcium dF/F0 (global, all cell pixels) ----
-if computeCa
-    baseVals = Ca_allCells_mean(baseFrames);
-    baseVals = baseVals(isfinite(baseVals));
-    if isempty(baseVals)
-        F0 = nan;
-    else
-        switch caF0Method
-            case "mean"
-                F0 = mean(baseVals,'omitnan');
-            otherwise
-                F0 = median(baseVals,'omitnan');
-        end
-    end
-    if isfinite(F0) && F0~=0
-        Ca_allCells_dff0 = (Ca_allCells_mean - F0)./F0;
-    else
-        Ca_allCells_dff0(:) = nan;
-    end
-end
-
 SE_FOV.SE = SE_FOV_SE;
 SE_FOV.area = SE_FOV_area;
 SE_FOV.SEDensity=SE_FOV_SEDensity;
@@ -693,10 +561,10 @@ if performForceBlobAnalysis
         writetable(tableForceBlobs,outputFile{9})
     end
 end
-save(outputFile{1,10},'SE_Blobs','totalForceBlobs', 'SE_Cell','totalForceCell','SE_FOV',... 
-    'totalForceFOV','totalForceCellPeri','totalForceCellInside','avgTractionCell',... 
-    'avgTractionCellPeri','avgTractionCellInside', ...
-    'CellMetrics','Ca_allCells_mean','Ca_allCells_dff0','caChan','baseFrames','caF0Method','-v7.3')%% Close waitbar
+save(outputFile{1,10},'SE_Blobs','totalForceBlobs', 'SE_Cell','totalForceCell','SE_FOV',...
+    'totalForceFOV','totalForceCellPeri','totalForceCellInside','avgTractionCell',...
+    'avgTractionCellPeri','avgTractionCellInside','-v7.3')
+%% Close waitbar
 if feature('ShowFigureWindows'), close(wtBar); end
 
 disp('Finished calculating strain energy and total force!')
