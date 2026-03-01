@@ -60,18 +60,6 @@ if ~isfield(funParams,'BaselineFrames') || isempty(funParams.BaselineFrames)
     funParams.BaselineFrames = 1;
 end
 
-<<<<<<< HEAD
-% Populate UI
-set(handles.edit_channelIndex, 'String', num2str(funParams.ChannelIndex));
-=======
-%% ===================== LAYOUT =====================
-function hFig = otherChannelSamplingProcessGUI_LayoutFcn(gui_SingletonOpt)
-% NOTE: gui_mainfcn calls LayoutFcn with one input (gui_SingletonOpt).
-% We do not use it, but we must accept it to avoid "Too many input arguments".
-% (Keeping GUIDE-compatible signature.)
-%#ok<*INUSD>
->>>>>>> 49c8fd4efa1b8962ed07507993325b889bf04754
-
 m = lower(string(funParams.Measure));
 if m == "median"
     set(handles.popup_measure, 'Value', 2);
@@ -214,7 +202,7 @@ try
         'release',          13, ...
         'resize',           'none', ...
         'accessibility',    'on', ...
-        'syscolorfig',      1)); %#ok<STRNU>
+        'syscolorfig',      1)); 
 catch
 end
 
