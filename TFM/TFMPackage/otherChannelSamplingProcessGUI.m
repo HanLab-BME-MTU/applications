@@ -20,23 +20,21 @@ gui_State = struct('gui_Name',       mfilename, ...
                    'gui_LayoutFcn',  @otherChannelSamplingProcessGUI_LayoutFcn, ...
                    'gui_Callback',   []);
 
-if nargin && ischar(varargin{1})
-    gui_State.gui_Callback = str2func(varargin{1});
-end
+% NOTE: packageGUI calls this GUI with name/value pairs like
+%   otherChannelSamplingProcessGUI('mainFig', hMain, procID)
+% Do NOT interpret the first string argument as a callback.
+
+gui_Options = struct('syscolorfig', false);  % required by some MATLAB gui_mainfcn variants
 
 if nargout
-    [varargout{1:nargout}] = gui_mainfcn(gui_State, varargin{:});
+    [varargout{1:nargout}] = gui_mainfcn(gui_State, varargin{:}, gui_Options);
 else
-    gui_mainfcn(gui_State, varargin{:});
+    gui_mainfcn(gui_State, varargin{:}, gui_Options);
 end
 end
 
 %% ===================== LAYOUT =====================
-function hFig = otherChannelSamplingProcessGUI_LayoutFcn(gui_SingletonOpt)
-% NOTE: gui_mainfcn calls LayoutFcn with one input (gui_SingletonOpt).
-% We do not use it, but we must accept it to avoid "Too many input arguments".
-% (Keeping GUIDE-compatible signature.)
-%#ok<*INUSD>
+function hFig = otherChannelSamplingProcessGUI_LayoutFcn(varargin)
 
 hFig = figure('Units','pixels', ...
     'Position',[300 200 620 360], ...
