@@ -107,33 +107,15 @@ if isempty(MD)
     end
 end
 
-[chString, chData] = buildChannelList(MD);
-set(handles.popupmenu_method, 'String', chString, 'UserData', chData);
+% [chString, chData] = buildChannelList(MD);
+% set(handles.popupmenu_method, 'String', chString, 'UserData', chData);
+% 
+% if isfield(funParams,'ChannelIndex') && ~isempty(funParams.ChannelIndex) && funParams.ChannelIndex >= 1 && funParams.ChannelIndex <= numel(chData)
+%     set(handles.popupmenu_method, 'Value', funParams.ChannelIndex);
+% else
+%     set(handles.popupmenu_method, 'Value', 1);
+% end
 
-if isfield(funParams,'ChannelIndex') && ~isempty(funParams.ChannelIndex) && funParams.ChannelIndex >= 1 && funParams.ChannelIndex <= numel(chData)
-    set(handles.popupmenu_method, 'Value', funParams.ChannelIndex);
-else
-    set(handles.popupmenu_method, 'Value', 1);
-end
-
-% Build mask-process popup
-[maskString, maskData] = buildMaskProcessList(MD);
-set(handles.popupmenu_solMethodBEM, 'String', maskString, 'UserData', maskData);
-
-% Set mask selection
-if isfield(funParams,'MaskProcessName') && ~isempty(funParams.MaskProcessName)
-    v = find(strcmp(funParams.MaskProcessName, maskData), 1, 'first');
-    if ~isempty(v), set(handles.popupmenu_solMethodBEM, 'Value', v); end
-else
-    set(handles.popupmenu_solMethodBEM, 'Value', 1);
-end
-
-% Mask channel index
-if isfield(funParams,'MaskChannelIndex')
-    set(handles.edit_meshPtsFwdSol, 'String', num2str(funParams.MaskChannelIndex));
-else
-    set(handles.edit_meshPtsFwdSol, 'String', '1');
-end
 
 % Checkboxes
 safeSetValue(handles, 'checkbox_lastToFirst', getFieldOr(funParams,'UseStageDriftCorrection',false));
@@ -141,12 +123,12 @@ safeSetValue(handles, 'checkbox_everyframe', getFieldOr(funParams,'SavePerFrameT
 safeSetValue(handles, 'useLcurve', getFieldOr(funParams,'UseLabeling',false));
 safeSetValue(handles, 'setROIfromForcemap', getFieldOr(funParams,'ComputeDFF0',false));
 
-% Min area
-if isfield(funParams,'MinAreaPix')
-    set(handles.edit_PoissonRatio, 'String', num2str(funParams.MinAreaPix));
-else
-    set(handles.edit_PoissonRatio, 'String', '50');
-end
+% % Min area
+% if isfield(funParams,'MinAreaPix')
+%     set(handles.edit_PoissonRatio, 'String', num2str(funParams.MinAreaPix));
+% else
+%     set(handles.edit_PoissonRatio, 'String', '50');
+% end
 
 % Baseline frames
 if isfield(funParams,'BaselineFrames')
@@ -160,9 +142,9 @@ if isfield(funParams,'BaselineFrames')
     else
         bfStr = bf;
     end
-    set(handles.edit_LcurveFactor, 'String', bfStr);
+    % set(handles.edit_LcurveFactor, 'String', bfStr);
 else
-    set(handles.edit_LcurveFactor, 'String', '1');
+    % set(handles.edit_LcurveFactor, 'String', '1');
 end
 
 
@@ -170,91 +152,18 @@ end
 handles = ensureOtherChannelParamControls(handles, funParams);
 guidata(hObject, handles);
 % (handles updated)
-end
 
 % Output directory
-if isfield(funParams, 'OutputDirectory')
-    set(handles.edit_basisClassTblPath, 'String', funParams.OutputDirectory);
-end
-
-% Build channel popup
-try
-    MD = userData.MD;
-catch
-    MD = [];
-end
-if isempty(MD)
-    % processGUI_OpeningFcn usually sets userData.MD; but keep safe fallback
-    try
-        MD = userData.crtProc.getOwner();
-    catch
-        MD = [];
-    end
-end
-
-[chString, chData] = buildChannelList(MD);
-set(handles.popupmenu_method, 'String', chString, 'UserData', chData);
-
-if isfield(funParams,'ChannelIndex') && ~isempty(funParams.ChannelIndex) && funParams.ChannelIndex >= 1 && funParams.ChannelIndex <= numel(chData)
-    set(handles.popupmenu_method, 'Value', funParams.ChannelIndex);
-else
-    set(handles.popupmenu_method, 'Value', 1);
-end
-
-% Build mask-process popup
-[maskString, maskData] = buildMaskProcessList(MD);
-set(handles.popupmenu_solMethodBEM, 'String', maskString, 'UserData', maskData);
-
-% Set mask selection
-if isfield(funParams,'MaskProcessName') && ~isempty(funParams.MaskProcessName)
-    v = find(strcmp(funParams.MaskProcessName, maskData), 1, 'first');
-    if ~isempty(v), set(handles.popupmenu_solMethodBEM, 'Value', v); end
-else
-    set(handles.popupmenu_solMethodBEM, 'Value', 1);
-end
-
-% Mask channel index
-if isfield(funParams,'MaskChannelIndex')
-    set(handles.edit_meshPtsFwdSol, 'String', num2str(funParams.MaskChannelIndex));
-else
-    set(handles.edit_meshPtsFwdSol, 'String', '1');
-end
-
-% Checkboxes
-safeSetValue(handles, 'checkbox_lastToFirst', getFieldOr(funParams,'UseStageDriftCorrection',false));
-safeSetValue(handles, 'checkbox_everyframe', getFieldOr(funParams,'SavePerFrameTifPreview',false));
-safeSetValue(handles, 'useLcurve', getFieldOr(funParams,'UseLabeling',false));
-safeSetValue(handles, 'setROIfromForcemap', getFieldOr(funParams,'ComputeDFF0',false));
-
-% Min area
-if isfield(funParams,'MinAreaPix')
-    set(handles.edit_PoissonRatio, 'String', num2str(funParams.MinAreaPix));
-else
-    set(handles.edit_PoissonRatio, 'String', '50');
-end
-
-% Baseline frames
-if isfield(funParams,'BaselineFrames')
-    bf = funParams.BaselineFrames;
-    if isnumeric(bf)
-        if isscalar(bf)
-            bfStr = num2str(bf);
-        else
-            bfStr = mat2str(bf);
-        end
-    else
-        bfStr = bf;
-    end
-    set(handles.edit_LcurveFactor, 'String', bfStr);
-else
-    set(handles.edit_LcurveFactor, 'String', '1');
-end
+% if isfield(funParams, 'OutputDirectory')
+%     set(handles.output, 'String', funParams.OutputDirectory);
+% end
 
 guidata(hObject, handles);
+end
 
 % --- Outputs from this function are returned to the command line.
 function varargout = otherChannelSamplingProcessGUI_OutputFcn(~, ~, handles)
-varargout{1} = handles.output;
+    varargout{1} = handles.figure1;
 
 end
 
@@ -275,42 +184,42 @@ if isempty(userData), userData = struct(); end
 
 funParams = userData.crtProc.funParams_;
 
-% Output directory
-outDir = get(handles.edit_basisClassTblPath, 'String');
-if isempty(outDir)
-    errordlg('Please enter a valid output directory.','Setting Error','modal');
-    return;
-end
-funParams.OutputDirectory = outDir;
+% % Output directory
+% outDir = get(handles.edit_basisClassTblPath, 'String');
+% if isempty(outDir)
+%     errordlg('Please enter a valid output directory.','Setting Error','modal');
+%     return;
+% end
+% funParams.OutputDirectory = outDir;
 
 % ChannelIndex
-props = get(handles.popupmenu_method, {'UserData','Value'});
-chData = props{1};
-chVal  = props{2};
-if isempty(chData) || chVal < 1 || chVal > numel(chData)
-    funParams.ChannelIndex = 1;
-else
-    funParams.ChannelIndex = chVal; % index into channel list
-end
+% props = get(handles.popupmenu_method, {'UserData','Value'});
+% chData = props{1};
+% chVal  = props{2};
+% if isempty(chData) || chVal < 1 || chVal > numel(chData)
+%     funParams.ChannelIndex = 1;
+% else
+%     funParams.ChannelIndex = chVal; % index into channel list
+% end
 
 % Mask process name
-props = get(handles.popupmenu_solMethodBEM, {'UserData','Value'});
-maskData = props{1};
-maskVal  = props{2};
-if isempty(maskData)
-    funParams.MaskProcessName = '';
-else
-    funParams.MaskProcessName = maskData{maskVal};
-end
+% props = get(handles.popupmenu_solMethodBEM, {'UserData','Value'});
+% maskData = props{1};
+% maskVal  = props{2};
+% if isempty(maskData)
+%     funParams.MaskProcessName = '';
+% else
+%     funParams.MaskProcessName = maskData{maskVal};
+% end
 
 % Mask channel index
-maskChanStr = get(handles.edit_meshPtsFwdSol, 'String');
-maskChan = str2double(maskChanStr);
-if isnan(maskChan) || maskChan < 1
-    errordlg('Mask channel index must be a positive integer.','Setting Error','modal');
-    return;
-end
-funParams.MaskChannelIndex = round(maskChan);
+% maskChanStr = get(handles.edit_meshPtsFwdSol, 'String');
+% maskChan = str2double(maskChanStr);
+% if isnan(maskChan) || maskChan < 1
+%     errordlg('Mask channel index must be a positive integer.','Setting Error','modal');
+%     return;
+% end
+% funParams.MaskChannelIndex = round(maskChan);
 
 % Options
 funParams.UseStageDriftCorrection = logical(get(handles.checkbox_lastToFirst, 'Value'));
@@ -628,11 +537,9 @@ safeSetValue(handles,'checkbox_useProgressBar', getFieldOr(funParams,'UseProgres
 
 % Wire callbacks for enable/disable behavior
 set(handles.popupmenu_instanceSegMethod,'Callback',@(h,e) ocsp_instanceSegMethod_Callback(h,e,guidata(h)));
-set(handles.useLcurve,'Callback',@(h,e) ocsp_useLabeling_Callback(h,e,guidata(h)));
 
 % Apply initial enabling
 ocsp_instanceSegMethod_Callback(handles.popupmenu_instanceSegMethod, [], handles);
-ocsp_useLabeling_Callback(handles.useLcurve, [], handles);
 end
 
 function ocsp_useLabeling_Callback(hObject, ~, handles)
