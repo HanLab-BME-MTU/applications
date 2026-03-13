@@ -50,7 +50,9 @@ preEndFrame = tnfAddFrame - 1; % 10
 dAvgTractionPre_CellInside_Group  = cell(numConditions,1); % frame10 - frame1
 dAvgTractionPost_CellInside_Group = cell(numConditions,1); % last - frame11
 stepAvgTraction_CellInside_Group  = cell(numConditions,1); % frame11 - frame10 (optional)
-
+% ==== OtherChannelSamplingProcess intensity (mask mean) ====
+meanInt_Mask_Group = cell(numConditions,1);   % cell array per condition, each entry is {Nmovies x 1}, each contains [nFrames x 1]
+dFF0_Mask_Group    = cell(numConditions,1);   % optional if you computed dF/F0, else NaN
 
 isCellSeg = false;
 
@@ -89,6 +91,10 @@ for ii=1:numConditions
     curdAvgTractionPre_CellInside  = nan(N(ii),1);
     curdAvgTractionPost_CellInside = nan(N(ii),1);
     curStepAvgTraction_CellInside  = nan(N(ii),1); % optional
+
+    % ==== OtherChannelSamplingProcess per movie ====
+    curMeanIntMaskGroup = cell(N(ii),1);
+    curdFF0MaskGroup    = cell(N(ii),1);
     
     for k=1:N(ii)
         % get the tracksNA
@@ -184,6 +190,50 @@ for ii=1:numConditions
         curSEPerFOVGroup{k}=curSEFOV;
         curSEDenPerFOVGroup{k}=curSEDenFOV;
         curTotForcePerFOVGroup{k}=curTotalForceFOV;
+        % ==== NEW: load mean intensity time series from OtherChannelSamplingProcess ====
+        try
+            iOCSP = curMovie.getProcessIndex('OtherChannelSamplingProcess', 1, 0);
+            if ~isempty(iOCSP)
+                ocspProc = curMovie.getProcess(iOCSP);
+        
+                % Most processes store the main output as outFilePaths_{1}
+                if isprop(ocspProc,'outFilePaths_') && ~isempty(ocspProc.outFilePaths_) ...
+                        && numel(ocspProc.outFilePaths_) >= 1 ...
+                        && exist(ocspProc.outFilePaths_{1}, 'file')
+        
+                    tmp = load(ocspProc.outFilePaths_{1}, 'S');
+                    if isfield(tmp,'S')
+                        S_ocsp = tmp.S;
+        
+                        % mask-based mean intensity per frame
+                        if isfield(S_ocsp,'mean')
+                            curMeanIntMaskGroup{k} = S_ocsp.mean(:);
+                        else
+                            curMeanIntMaskGroup{k} = NaN;
+                        end
+        
+                        % optional dF/F0 (whole mask)
+                        if isfield(S_ocsp,'dFF0')
+                            curdFF0MaskGroup{k} = S_ocsp.dFF0(:);
+                        else
+                            curdFF0MaskGroup{k} = NaN;
+                        end
+                    else
+                        curMeanIntMaskGroup{k} = NaN;
+                        curdFF0MaskGroup{k} = NaN;
+                    end
+                else
+                    curMeanIntMaskGroup{k} = NaN;
+                    curdFF0MaskGroup{k} = NaN;
+                end
+            else
+                curMeanIntMaskGroup{k} = NaN;
+                curdFF0MaskGroup{k} = NaN;
+            end
+        catch
+            curMeanIntMaskGroup{k} = NaN;
+            curdFF0MaskGroup{k} = NaN;
+        end        
     end
     SE_FB_Group{ii,1}=curSEPerFBGroup;
     SEDen_FB_Group{ii,1}=curSEDenPerFBGroup;
@@ -198,6 +248,9 @@ for ii=1:numConditions
     SE_FOV_Group{ii,1}=curSEPerFOVGroup;
     SEDen_FOV_Group{ii,1}=curSEDenPerFOVGroup;
     totalForce_FOV_Group{ii,1}=curTotForcePerFOVGroup;
+
+    meanInt_Mask_Group{ii,1} = curMeanIntMaskGroup;
+    dFF0_Mask_Group{ii,1}    = curdFF0MaskGroup;
     
     if isCellSeg
         SE_Cell_Group{ii,1}=curSECellGroup;
@@ -227,6 +280,7 @@ for ii=1:numConditions
         dAvgTractionPost_CellInside_Group{ii,1} = curdAvgTractionPost_CellInside;
         stepAvgTraction_CellInside_Group{ii,1}  = curStepAvgTraction_CellInside; % optional
     end
+
 end
 disp('Done')
 %% setting up group name
@@ -780,7 +834,7 @@ end
     %% Pre (frame10 - frame1): baseline drift/vehicle period
 if isCellSeg    
     dPre_CellArray = cellfun(@(x) x(:), dAvgTractionPre_CellInside_Group, 'unif', false);
-    figure('Color','w');
+    h1=figure('Color','w');
     boxPlotCellArray(dPre_CellArray, nameList, 1, false, true);
     ylabel('\Delta mean traction (Pa)  (frame10 - frame1)');
     title('Baseline change in mean traction (0-30 min)');
@@ -794,7 +848,7 @@ end
 %% post (last - frame11): after TNFa addition
 if isCellSeg
     dAvgTractionPost_CellInside_CellArray = cellfun(@(x) x(:), dAvgTractionPost_CellInside_Group, 'unif', false);
-    figure('Color','w');
+    h1=figure('Color','w');
     boxPlotCellArray(dAvgTractionPost_CellInside_CellArray, nameList, 1, false, true);
     ylabel('\Delta mean traction (Pa)  (last - frame11)');
     title('Post-TNF\alpha change in mean traction (30 min - end)');
@@ -808,7 +862,7 @@ end
     %% optional: immediate step at TNF? addition (frame11 - frame10)
 if isCellSeg
     dStep_CellArray = cellfun(@(x) x(:), stepAvgTraction_CellInside_Group, 'unif', false);
-    figure('Color','w');
+    h1=figure('Color','w');
     boxPlotCellArray(dStep_CellArray, nameList, 1, false, true);
     ylabel('\Delta mean traction (Pa)  (frame11 - frame10)');
     title('Immediate change at TNF\alpha addition');
@@ -853,5 +907,92 @@ if isCellSeg
     tableSpreadArea=table(spreadArea_CellArray,'RowNames',nameList);
     writetable(tableSpreadArea,strcat(dataPath,'/spreadArea.csv'),'WriteRowNames',true)
 end
+
+%% =========================
+% OtherChannelSampling: Mask mean intensity (all frames pooled)
+% =========================
+try
+    meanInt_Mask_GroupCellArray = cellfun(@(x) cell2mat(x), meanInt_Mask_Group, 'unif', false);
+
+    h1 = figure;
+    boxPlotCellArray(meanInt_Mask_GroupCellArray, nameList, 1, false, true);
+    ylabel('Mean intensity (mask)');
+    title('OtherChannelSampling: mean intensity in mask (all frames)');
+
+    hgexport(h1, strcat(figPath,'/otherChannel_maskMeanIntensity_allFrames'), hgexport('factorystyle'), 'Format','eps');
+    hgsave(h1, strcat(figPath,'/otherChannel_maskMeanIntensity_allFrames'), '-v7.3');
+    print(h1, strcat(figPath,'/otherChannel_maskMeanIntensity_allFrames.tif'), '-dtiff');
+
+    tableMeanInt_AllFrames = table(meanInt_Mask_GroupCellArray, 'RowNames', nameList);
+    writetable(tableMeanInt_AllFrames, strcat(dataPath,'/otherChannel_maskMeanIntensity_allFrames.csv'), 'WriteRowNames', true);
+catch ME
+    warning(ME.identifier,'Failed plotting mask mean intensity (all frames): %s', ME.message);
+end
+
+%% =========================
+% OtherChannelSampling: Mask mean intensity (per-movie mean)
+% =========================
+try
+    meanInt_Mask_PerMovieMean = cellfun(@(condCell) cellfun(@(v) nanmean(v(:)), condCell), ...
+        meanInt_Mask_Group, 'unif', false);
+
+    h1 = figure;
+    boxPlotCellArray(meanInt_Mask_PerMovieMean, nameList, 1, false, true);
+    ylabel('Mean intensity (mask), per-movie mean');
+    title('OtherChannelSampling: per-movie mean intensity (mask)');
+
+    hgexport(h1, strcat(figPath,'/otherChannel_maskMeanIntensity_perMovieMean'), hgexport('factorystyle'), 'Format','eps');
+    hgsave(h1, strcat(figPath,'/otherChannel_maskMeanIntensity_perMovieMean'), '-v7.3');
+    print(h1, strcat(figPath,'/otherChannel_maskMeanIntensity_perMovieMean.tif'), '-dtiff');
+
+    tableMeanInt_PerMovie = table(meanInt_Mask_PerMovieMean, 'RowNames', nameList);
+    writetable(tableMeanInt_PerMovie, strcat(dataPath,'/otherChannel_maskMeanIntensity_perMovieMean.csv'), 'WriteRowNames', true);
+catch ME
+    warning(ME.identifier,'Failed plotting mask mean intensity (per-movie mean): %s', ME.message);
+end
+
+%% =========================
+% OtherChannelSampling: Mask dF/F0 (all frames pooled)
+% =========================
+try
+    dFF0_Mask_GroupCellArray = cellfun(@(x) cell2mat(x), dFF0_Mask_Group, 'unif', false);
+
+    h1 = figure;
+    boxPlotCellArray(dFF0_Mask_GroupCellArray, nameList, 1, false, true);
+    ylabel('\DeltaF/F0 (mask)');
+    title('OtherChannelSampling: dF/F0 in mask (all frames)');
+
+    hgexport(h1, strcat(figPath,'/otherChannel_mask_dFF0_allFrames'), hgexport('factorystyle'), 'Format','eps');
+    hgsave(h1, strcat(figPath,'/otherChannel_mask_dFF0_allFrames'), '-v7.3');
+    print(h1, strcat(figPath,'/otherChannel_mask_dFF0_allFrames.tif'), '-dtiff');
+
+    tableDFF0_AllFrames = table(dFF0_Mask_GroupCellArray, 'RowNames', nameList);
+    writetable(tableDFF0_AllFrames, strcat(dataPath,'/otherChannel_mask_dFF0_allFrames.csv'), 'WriteRowNames', true);
+catch ME
+    warning(ME.identifier,'Failed plotting mask dF/F0 (all frames): %s', ME.message);
+end
+
+%% =========================
+% OtherChannelSampling: Mask dF/F0 (per-movie mean)
+% =========================
+try
+    dFF0_Mask_PerMovieMean = cellfun(@(condCell) cellfun(@(v) nanmean(v(:)), condCell), ...
+        dFF0_Mask_Group, 'unif', false);
+
+    h1 = figure;
+    boxPlotCellArray(dFF0_Mask_PerMovieMean, nameList, 1, false, true);
+    ylabel('\DeltaF/F0 (mask), per-movie mean');
+    title('OtherChannelSampling: per-movie mean dF/F0 (mask)');
+
+    hgexport(h1, strcat(figPath,'/otherChannel_mask_dFF0_perMovieMean'), hgexport('factorystyle'), 'Format','eps');
+    hgsave(h1, strcat(figPath,'/otherChannel_mask_dFF0_perMovieMean'), '-v7.3');
+    print(h1, strcat(figPath,'/otherChannel_mask_dFF0_perMovieMean.tif'), '-dtiff');
+
+    tableDFF0_PerMovie = table(dFF0_Mask_PerMovieMean, 'RowNames', nameList);
+    writetable(tableDFF0_PerMovie, strcat(dataPath,'/otherChannel_mask_dFF0_perMovieMean.csv'), 'WriteRowNames', true);
+catch ME
+    warning(ME.identifier,'Failed plotting mask dF/F0 (per-movie mean): %s', ME.message);
+end
+
 %% save entire workspace for later
 save([dataPath filesep 'allData.mat'])

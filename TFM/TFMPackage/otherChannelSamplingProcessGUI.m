@@ -242,9 +242,9 @@ for i=1:numel(ch)
 end
 
 % Font sizing (Linux tends to scale GUIDE fonts huge)
-baseFont = 10;
+baseFont = 8;
 if isunix && ~ismac
-    baseFont = 9;
+    baseFont = 4;
 end
 
 % Layout grid

@@ -346,7 +346,7 @@ performForceBlobAnalysis=p.performForceBlobAnalysis;
 
 logMsg='Quantifying strain energy and total force';
 if feature('ShowFigureWindows'), waitbar(0,wtBar,sprintf(logMsg)); end
-for ii=1:nFrames
+parfor ii=1:nFrames
     % Make sure if each tmap has its contents
 %     curTMap=tMap(:,:,ii);
     ws = warning;                 % save current warning state
@@ -508,7 +508,11 @@ for ii=1:nFrames
         maskOnlyBand = bandMask & maskCell;
         maskInterior = ~bandMask & maskCell;
         % saving it
-        save(maskIndPath(ii), 'maskOnlyBand')
+        fname = feval(maskIndPath, ii);
+        m = matfile(fname, 'Writable', true);
+        m.maskOnlyBand = maskOnlyBand;   % writes variable named "maskOnlyBand"
+        
+        % save(fname, 'maskOnlyBand')
         
         areaCell = sum(maskCell(:))*areaConvert;  % in um2
         areaPeri = sum(maskOnlyBand(:))*areaConvert; % in um2
