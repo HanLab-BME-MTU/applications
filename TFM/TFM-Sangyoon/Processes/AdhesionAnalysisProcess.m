@@ -435,6 +435,13 @@ classdef AdhesionAnalysisProcess < DataProcessingProcess %& DataProcessingProces
             funParams.matchWithFA = true; 
             funParams.minLifetime = 5;  % For tracks
             funParams.reTrack = true;
+            
+
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            %%%Majid Added This Line
+            funParams.optimization_method = 'cpu';  % Options: 'none', 'cpu', 'gpu'
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
             funParams.getEdgeRelatedFeatures = true;
             funParams.bandwidthNA = 7;
             funParams.minFALengthMicron = 2;

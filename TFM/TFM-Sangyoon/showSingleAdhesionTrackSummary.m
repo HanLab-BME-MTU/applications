@@ -686,6 +686,9 @@ if exist('gPath','var')
     if ~exist('additionalName','var')
         additionalName=[];
     end
+    if isempty(gPath)
+    gPath = pwd;
+    end
     print(h2,strcat(gPath,'/trackID',num2str(IDtoInspect),additionalName,'.eps'),'-depsc2')
     print(h2,strcat(gPath,'/trackID',num2str(IDtoInspect),additionalName,'.png'),'-dpng')
     savefig(h2,strcat(gPath,'/trackID',num2str(IDtoInspect),additionalName,'.fig'))

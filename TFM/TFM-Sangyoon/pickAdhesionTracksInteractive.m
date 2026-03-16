@@ -187,6 +187,7 @@ hold off
 % Supporting data cursor mode to identify an ID of NA track of interest.
 dcm_obj = datacursormode(hFig);
 set(dcm_obj,'UpdateFcn',@myupdateDC)
+set(dcm_obj,'Enable','on')
 imgWidth = size(imgMap,2);
 imgHeight = size(imgMap,1);
 selectedID = [];

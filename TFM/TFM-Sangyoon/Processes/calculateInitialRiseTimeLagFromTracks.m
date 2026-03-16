@@ -89,7 +89,7 @@ toc
 %% Now we have to combine this with readings from step 9 and 10
 iTheOtherProc=9; 
 theOtherReadProc=FAPack.processes_{iTheOtherProc};
-if ~isempty(theOtherReadProc)
+if ~isempty(theOtherReadProc) && theOtherReadProc.success_
     pTOC = theOtherReadProc.funParams_;
     for ii=1:numel(pTOC.ProcessIndex)
         ampObj = load(theOtherReadProc.outFilePaths_{ii,pTOC.ChannelIndex{ii},1},'tracksAmpTotal'); % the later channel has the most information.
@@ -317,7 +317,7 @@ else
     idGroups = {idGroup1,idGroup2,idGroup3,idGroup4,idGroup5,idGroup6,idGroup7,idGroup8,idGroup9};
 end
 
-if ~isempty(theOtherReadProc)
+if ~isempty(theOtherReadProc) && theOtherReadProc.success_
     % Here we want to filter out noisy tracks that are 1) nearly invisible
     % by eye (via sigma); 2) not enough pre-signal period; 3) no
     % amp2-increasing (via SlaveTransmittingAll{jj})
