@@ -398,9 +398,35 @@ if ~foundTracks
 
     if ~startFromIntermediate
         %% reTracking
-        % get the intensity
+
+        % Majid commented these lines for the sake of optimization -
+        % 01292026 
+        % % get the intensity
+        % disp('Reading intensities with additional tracking...')
+        % tracksNA = readIntensityFromTracks(tracksNA, imgStack, 1, 'extraLength',30,'movieData',MD,'retrack',reTrack); % 1 means intensity collection from pax image
+
+        % get the intensity with optimization method selection
         disp('Reading intensities with additional tracking...')
-        tracksNA = readIntensityFromTracks(tracksNA, imgStack, 1, 'extraLength',30,'movieData',MD,'retrack',reTrack); % 1 means intensity collection from pax image
+        if isfield(p, 'optimization_method')
+            optMethod = p.optimization_method;
+        else
+            optMethod = 'none';  % default to original
+        end
+        
+        switch lower(optMethod)
+            case 'gpu'
+                disp('=== Optimization: GPU (moment-based, fastest) ===');
+                tracksNA = readIntensityFromTracks_gpuMomentBased(tracksNA, imgStack, 1, ...
+                    'extraLength', 30, 'movieData', MD, 'reTrack', reTrack);
+            case 'cpu'
+                disp('=== Optimization: CPU (parallelized, exact output) ===');
+                tracksNA = readIntensityFromTracks_cpuParallel(tracksNA, imgStack, 1, ...
+                    'extraLength', 30, 'movieData', MD, 'reTrack', reTrack);
+            otherwise  % 'none'
+                disp('=== Optimization: None (original) ===');
+                tracksNA = readIntensityFromTracks(tracksNA, imgStack, 1, ...
+                    'extraLength', 30, 'movieData', MD, 'reTrack', reTrack);
+        end
 
         %% Filter with lifeTime 
         lifeTime = arrayfun(@(x) x.endingFrameExtra-x.startingFrameExtra,tracksNA);

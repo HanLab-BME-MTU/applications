@@ -23,6 +23,7 @@ function varargout = focalAdhesionAnalysisProcessGUI(varargin)
 % Edit the above text to modify the response to help focalAdhesionAnalysisProcessGUI
 
 % Last Modified by GUIDE v2.5 28-Feb-2017 13:41:36
+% Modified by Majid - Added optimization_method support
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -66,6 +67,34 @@ end
 % Set edit strings/numbers
 for paramName = userData.checkBoxes
     set(handles.(['checkbox_' paramName{1}]), 'Value', funParams.(paramName{1}));
+end
+
+% Set optimization method popup (if exists in GUI)
+if isfield(handles, 'popupmenu_optimization')
+    % Map parameter value to popup index
+    % 1 = 'cpu', 2 = 'gpu', 3 = 'none'
+    if isfield(funParams, 'optimization_method')
+        switch lower(funParams.optimization_method)
+            case 'cpu'
+                popupValue = 1;
+            case 'gpu'
+                popupValue = 2;
+            case 'none'
+                popupValue = 3;
+            otherwise
+                popupValue = 1;  % Default to CPU
+        end
+    else
+        popupValue = 1;  % Default to CPU if parameter doesn't exist
+    end
+    set(handles.popupmenu_optimization, 'Value', popupValue);
+    
+    % Enable/disable based on reTrack checkbox
+    reTrackValue = get(handles.checkbox_reTrack, 'Value');
+    set(handles.popupmenu_optimization, 'Enable', onOff(reTrackValue));
+    if isfield(handles, 'text_optimization')
+        set(handles.text_optimization, 'Enable', onOff(reTrackValue));
+    end
 end
 
 % Update GUI user data
@@ -144,8 +173,27 @@ for paramName = userData.checkBoxes
     funParams.(paramName{1}) = logical(get(handles.(['checkbox_' paramName{1}]),'Value')); 
 end
 
-processGUI_ApplyFcn(hObject, eventdata, handles, funParams);
+% Get optimization method (if popup exists in GUI)
+if isfield(handles, 'popupmenu_optimization')
+    popupValue = get(handles.popupmenu_optimization, 'Value');
+    % Map popup index to parameter value
+    % 1 = 'cpu', 2 = 'gpu', 3 = 'none'
+    switch popupValue
+        case 1
+            funParams.optimization_method = 'cpu';
+        case 2
+            funParams.optimization_method = 'gpu';
+        case 3
+            funParams.optimization_method = 'none';
+        otherwise
+            funParams.optimization_method = 'cpu';
+    end
+else
+    % Default if popup doesn't exist yet
+    funParams.optimization_method = 'cpu';
+end
 
+processGUI_ApplyFcn(hObject, eventdata, handles, funParams);
 
 
 % --- Executes on button press in checkbox_reTrack.
@@ -154,8 +202,14 @@ function checkbox_reTrack_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hint: get(hObject,'Value') returns toggle state of checkbox_reTrack
-
+% Enable/disable optimization popup based on reTrack state
+if isfield(handles, 'popupmenu_optimization')
+    reTrackValue = get(hObject, 'Value');
+    set(handles.popupmenu_optimization, 'Enable', onOff(reTrackValue));
+    if isfield(handles, 'text_optimization')
+        set(handles.text_optimization, 'Enable', onOff(reTrackValue));
+    end
+end
 
 
 % --- Executes on button press in checkbox_onlyEdge.
@@ -183,3 +237,42 @@ function checkbox_matchWithFA_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkbox_matchWithFA
+
+
+% --- Executes on selection change in popupmenu_optimization.
+function popupmenu_optimization_Callback(hObject, eventdata, handles)
+% hObject    handle to popupmenu_optimization (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Display warning if GPU is selected
+popupValue = get(hObject, 'Value');
+if popupValue == 2  % GPU selected
+    warndlg({'GPU optimization uses moment-based fitting instead of', ...
+             'iterative Levenberg-Marquardt. Results may differ slightly', ...
+             'from CPU/None modes but are scientifically valid.', ...
+             '', ...
+             'Recommended for initial exploration only.'}, ...
+            'GPU Optimization Warning');
+end
+
+
+% --- Executes during object creation, after setting all properties.
+function popupmenu_optimization_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to popupmenu_optimization (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Helper function to convert logical to 'on'/'off'
+function str = onOff(value)
+if value
+    str = 'on';
+else
+    str = 'off';
+end

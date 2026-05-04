@@ -75,8 +75,10 @@ classdef InitialRiseTimeLagCalculationProcess < DataProcessingProcess
                 theOtherReadProc=FAPack.processes_{iTheOtherProc};
                 forceReadProc=FAPack.processes_{iForceRead};
 
-                pTOC = theOtherReadProc.funParams_;
-                if ~isempty(theOtherReadProc)
+                % pTOC = theOtherReadProc.funParams_;
+                if ~isempty(theOtherReadProc) && theOtherReadProc.success_
+                    pTOC = theOtherReadProc.funParams_;
+
                     for ii=1:numel(pTOC.ProcessIndex)
                         ampObj = load(theOtherReadProc.outFilePaths_{ii,pTOC.ChannelIndex{ii},1},'tracksAmpTotal'); % the later channel has the most information.
                         tracksAmpTotal = ampObj.tracksAmpTotal;
