@@ -140,43 +140,108 @@ nChan = length(p.ChannelIndex);
 nTot = nChan*nFrames;
 Tout = zeros(nFrames, 4);
 
+% ---- Global alias correction decision (vote across sample frames) ----
+% Running detectAliasedShift per-frame is unreliable when Q scores are close.
+% Instead, sample a few frames, tally which quadrant wins most often, and apply
+% that correction GLOBALLY to all frames. Stage drift is systematic, so the
+% winning quadrant should be consistent.
+nSample   = min(10, nFrames);
+sampleIdx = round(linspace(1, nFrames, nSample));
+quadVotes = zeros(1, 4);   % votes for Q1, Q2, Q3, Q4
+
+disp('Detecting alias correction from sample frames...');
+for k = 1:nSample
+    fk = sampleIdx(k);
+    mv = ImStack(:,:,fk);
+    [dft_s, Greg_s] = dftregistration(fft2(refFrame), fft2(mv), 1);
+    I_s = abs(ifft2(Greg_s));
+    [~,~,inf_s] = detectAliasedShift(refFrame, I_s, dft_s.row_shift, dft_s.col_shift, ...
+        size(refFrame,1), size(refFrame,2));
+    quadVotes(inf_s.best_quadrant) = quadVotes(inf_s.best_quadrant) + 1;
+end
+
+[~, globalBestQuad] = max(quadVotes);
+
+% Compute median shift from sample frames to check plausibility
+med_row_s = median(arrayfun(@(k) dftregistration(fft2(refFrame), fft2(ImStack(:,:,sampleIdx(k))), 1).row_shift, 1:nSample));
+med_col_s = median(arrayfun(@(k) dftregistration(fft2(refFrame), fft2(ImStack(:,:,sampleIdx(k))), 1).col_shift, 1:nSample));
+[nR_g, nC_g] = size(refFrame);
+rowAliasPlausible_g = abs(med_row_s) > nR_g / 4;
+colAliasPlausible_g = abs(med_col_s) > nC_g / 4;
+
+global_row_corrected = rowAliasPlausible_g && (globalBestQuad == 3 || globalBestQuad == 4);
+global_col_corrected = colAliasPlausible_g && (globalBestQuad == 2 || globalBestQuad == 4);
+disp(['Global best quadrant: Q' num2str(globalBestQuad) ...
+      '  median shift: row=' num2str(med_row_s) ' col=' num2str(med_col_s)]);
+disp(['  row_corrected=' num2str(global_row_corrected) ...
+      '  col_corrected=' num2str(global_col_corrected)]);
+
+% ---- Per-frame processing ----
 for frame_num = 1:nFrames
 
    moving = ImStack(:,:,frame_num);
 
-   % Core Algorithm
+   % ---- Shift estimation (dftregistration, unchanged) ----
    [DFT_output, Greg_beads] = dftregistration(fft2(refFrame), fft2(moving), p.usfac);
+   row_shift = DFT_output.row_shift;
+   col_shift = DFT_output.col_shift;
+
+   % ---- Apply global alias correction decision ----
+   [nR, nC] = size(refFrame);
+   I_shifted = abs(ifft2(Greg_beads));
+   
+   row_shift_true = row_shift;
+   col_shift_true = col_shift;
+   if global_col_corrected
+       col_shift_true = col_shift + sign(-col_shift) * nC;
+   end
+   if global_row_corrected
+       row_shift_true = row_shift + sign(-row_shift) * nR;
+   end
+   
+   quadInfo.row_corrected = global_row_corrected;
+   quadInfo.col_corrected = global_col_corrected;
+   
+   if row_shift_true ~= row_shift || col_shift_true ~= col_shift
+       disp(['  [alias corrected] row: ' num2str(row_shift) '->' num2str(row_shift_true) ...
+             '  col: ' num2str(col_shift) '->' num2str(col_shift_true)]);
+   end
+
+   % Store corrected shifts + original shifts + flags in DFT_output
+   DFT_output.row_shift       = row_shift_true;
+   DFT_output.col_shift       = col_shift_true;
+   DFT_output.row_shift_orig  = row_shift;       % original dftregistration value
+   DFT_output.col_shift_orig  = col_shift;
+   DFT_output.row_corrected   = quadInfo.row_corrected;
+   DFT_output.col_corrected   = quadInfo.col_corrected;
    DFTout(frame_num) = DFT_output;
+
    disp(['-Frame: ' num2str(frame_num)]);
-   disp(['x shift: ' num2str(DFTout(frame_num).row_shift)]);
-   disp(['y shift: ' num2str(DFTout(frame_num).col_shift)]);
-   I_beads = abs(ifft2(Greg_beads));
+   disp(['row_shift: ' num2str(row_shift_true) '  (dft: ' num2str(row_shift) ')']);
+   disp(['col_shift: ' num2str(col_shift_true) '  (dft: ' num2str(col_shift) ')']);
+
+   % ---- Apply: keep ifft2 result (best visual quality) ----
+   % The circularly-shifted image already has correct content in the
+   % score-driving quadrant. We zero out the non-score-driving regions.
+   fMask = computeValidMask(nR, nC, row_shift, col_shift, ...
+       quadInfo.row_corrected, quadInfo.col_corrected);
+   I_beads = I_shifted .* double(fMask);
    imwrite(uint16(I_beads), outFile(p.iBeadChannel, frame_num));
 
-   % Apply transform to each selected channel
+   % Apply same transform + mask to each additional channel
    for i = setdiff(p.ChannelIndex, p.iBeadChannel)
-
-      % Load frame from appropriate channel
-      iChan = p.ChannelIndex(i);
+      iChan  = p.ChannelIndex(i);
       imChan = double(movieData.channels_(iChan).loadImage(frame_num));
-      % disp('Results saved under:');
-      % disp(outFilePaths{1, iChan});
-
-      % Apply DFT-based transformation
       fft_imChan = DFT_apply(fft2(imChan), DFT_output);
-      I2 = abs(ifft2(fft_imChan));
-      
+      I2 = abs(ifft2(fft_imChan)) .* double(fMask);
       imwrite(uint16(I2), outFile(iChan, frame_num));
-
    end
-% Update the waitbar
-%      if mod(frame_num, 5)==1 && ishandle(wtBar)
-     if ishandle(wtBar)
-         tj = toc;
-    %      nj = (i-1)*nFrames+ frame_num;
-         nj = frame_num;
-         waitbar(nj/nFrames, wtBar, sprintf([logMsg(frame_num) timeMsg(tj*nTot/nj-tj)]));
-     end
+
+   if ishandle(wtBar)
+       tj = toc;
+       nj = frame_num;
+       waitbar(nj/nFrames, wtBar, sprintf([logMsg(frame_num) timeMsg(tj*nTot/nj-tj)]));
+   end
 end
 
 
@@ -189,17 +254,203 @@ else
   % refFrame = double(imread(p.referenceFramePath));
 end
 
-imwrite(uint16(refFrame), outFilePaths{2, p.ChannelIndex(p.iBeadChannel)});
-
 T = [DFTout.row_shift; DFTout.col_shift]';
-save(outFilePaths{3, p.ChannelIndex(p.iBeadChannel)},'DFTout', 'T');
-% Close waitbar
+
+% Combined valid mask using corrected shifts
+[nRows, nCols] = size(refFrame);
+validMask = true(nRows, nCols);
+for frame_num = 1:nFrames
+    validMask = validMask & computeValidMask(nRows, nCols, ...
+        DFTout(frame_num).row_shift_orig, DFTout(frame_num).col_shift_orig, ...
+        DFTout(frame_num).row_corrected,  DFTout(frame_num).col_corrected);
+end
+
+% Save reference masked to valid region
+refFrame_masked = refFrame .* double(validMask);
+imwrite(uint16(refFrame_masked), outFilePaths{2, p.ChannelIndex(p.iBeadChannel)});
+save(outFilePaths{3, p.ChannelIndex(p.iBeadChannel)}, 'DFTout', 'T', 'validMask');
 if ishandle(wtBar), close(wtBar); end
 disp('Finished correcting stage drift!')
 
+end % efficientSubPixelRegistration
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+function mask = computeValidMask(nR, nC, row_shift_orig, col_shift_orig, row_corrected, col_corrected)
+% Valid region in the circular-shift (ifft2) output.
+%
+% The circular shift applies: output[r,c] = moving[r - row_shift, c - col_shift] (circular)
+% This creates 4 quadrants. The "main" quadrant contains content from the
+% non-wrapped portion of moving; the "wrapped" quadrant contains the aliased
+% portion. If alias correction was applied (row/col_corrected = true), the
+% score-driving region is the WRAPPED quadrant, not the main one.
+%
+% row_shift_orig, col_shift_orig : dftregistration output (possibly aliased)
+% row_corrected, col_corrected   : true if that axis was alias-corrected
+
+if nargin < 5, row_corrected = false; col_corrected = false; end
+
+r_orig = round(row_shift_orig);
+c_orig = round(col_shift_orig);
+
+% ---- Row: determine valid rows ----
+if r_orig > 0
+    % circshift by -r_orig rows: top rows get wrapped content from bottom
+    main_r    = [1 : nR - r_orig];         % output rows with non-wrapped content
+    wrapped_r = [nR - r_orig + 1 : nR];    % output rows with wrapped content
+elseif r_orig < 0
+    main_r    = [-r_orig + 1 : nR];        % bottom portion
+    wrapped_r = [1 : -r_orig];             % top portion (wrapped)
+else
+    main_r    = 1:nR;
+    wrapped_r = 1:nR;
+end
+
+% ---- Col: determine valid cols ----
+if c_orig < 0
+    % circshift by +|c_orig| cols: RIGHT side gets wrapped content from LEFT
+    main_c    = [1 : nC + c_orig];         % LEFT portion = main content
+    wrapped_c = [nC + c_orig + 1 : nC];   % RIGHT portion = wrapped content
+elseif c_orig > 0
+    main_c    = [c_orig + 1 : nC];         % RIGHT portion = main
+    wrapped_c = [1 : c_orig];              % LEFT portion = wrapped
+else
+    main_c    = 1:nC;
+    wrapped_c = 1:nC;
+end
+
+% Select correct rows/cols based on alias correction
+if row_corrected
+    valid_r = wrapped_r;
+else
+    valid_r = main_r;
+end
+
+if col_corrected
+    valid_c = wrapped_c;
+else
+    valid_c = main_c;
+end
+
+mask = false(nR, nC);
+if ~isempty(valid_r) && ~isempty(valid_c)
+    mask(valid_r, valid_c) = true;
+end
+end
+
+
+function [row_true, col_true, info] = detectAliasedShift(ref, shifted, row_sh, col_sh, nR, nC)
+% Detect and correct aliased shifts from circular FFT cross-correlation.
+%
+% dftregistration restricts shifts to [-N/2, N/2). If the true shift exceeds
+% this range, the reported value is aliased: shift_true = shift +/- N.
+%
+% APPROACH: Score all 4 quadrants of the circularly-shifted output against the
+% reference. The winning quadrant (highest corr2) directly tells us which axes
+% need alias correction.
+%
+% Quadrant layout in the circular-shift output:
+%   (output[r,c] = moving[r - row_sh, c - col_sh] circular)
+%
+%   For row_sh > 0: output rows [1:row_sh] = wrapped (from bottom of moving)
+%                   output rows [row_sh+1:nR] = main
+%   For col_sh < 0: output cols [1:nC+col_sh] = main
+%                   output cols [nC+col_sh+1:nC] = wrapped (from left of moving)
+%
+% Winning quadrant -> correction:
+%   Q1 (main  row x main  col): no correction
+%   Q2 (main  row x wrap  col): col correction only
+%   Q3 (wrap  row x main  col): row correction only
+%   Q4 (wrap  row x wrap  col): both corrections
+
+row_true = row_sh;
+col_true = col_sh;
+
+r = round(row_sh);
+c = round(col_sh);
+
+% Row quadrant boundaries
+if r > 0
+    r_main    = r+1 : nR;
+    r_wrapped = 1   : r;
+elseif r < 0
+    r_main    = -r+1 : nR;
+    r_wrapped = 1    : -r;
+else
+    r_main    = 1:nR;  r_wrapped = [];
+end
+
+% Col quadrant boundaries
+if c < 0
+    c_main    = 1      : nC+c;
+    c_wrapped = nC+c+1 : nC;
+elseif c > 0
+    c_main    = c+1 : nC;
+    c_wrapped = 1   : c;
+else
+    c_main    = 1:nC;  c_wrapped = [];
+end
+
+% Score all 4 quadrants
+scores = [-Inf -Inf -Inf -Inf];  % [Q1 Q2 Q3 Q4]
+if ~isempty(r_main) && ~isempty(c_main)
+    scores(1) = quadScore(ref, shifted, r_main,    c_main);
+end
+if ~isempty(r_main) && ~isempty(c_wrapped)
+    scores(2) = quadScore(ref, shifted, r_main,    c_wrapped);
+end
+if ~isempty(r_wrapped) && ~isempty(c_main)
+    scores(3) = quadScore(ref, shifted, r_wrapped, c_main);
+end
+if ~isempty(r_wrapped) && ~isempty(c_wrapped)
+    scores(4) = quadScore(ref, shifted, r_wrapped, c_wrapped);
+end
+
+[~, best] = max(scores);
+
+% Alias correction plausibility guard:
+% A true shift of ~N would leave almost no image content - physically implausible.
+% Only apply correction if the wrapped region is large enough (|shift| > N/4).
+% For small shifts (< N/4), the wrapped strip is tiny and corr2 there is
+% unreliable - do NOT correct even if wrapped score happens to be higher.
+rowAliasPlausible = abs(r) > nR / 4;
+colAliasPlausible = abs(c) > nC / 4;
+
+% Determine corrections from winning quadrant, with plausibility guard
+row_corrected = rowAliasPlausible && (best == 3 || best == 4);
+col_corrected = colAliasPlausible && (best == 2 || best == 4);
+
+if col_corrected
+    col_true = col_sh + sign(-col_sh) * nC;
+end
+if row_corrected
+    row_true = row_sh + sign(-row_sh) * nR;
+end
+
+info.scores        = scores;
+info.best_quadrant = best;
+info.row_corrected = row_corrected;
+info.col_corrected = col_corrected;
+info.row_sh_orig   = row_sh;
+info.col_sh_orig   = col_sh;
+end
+
+
+function s = quadScore(ref, shifted, rows, cols)
+% corr2 score in a quadrant. Returns -Inf if region is too small or flat.
+if numel(rows) < 10 || numel(cols) < 10
+    s = -Inf; return;
+end
+R = double(ref(rows, cols));
+S = double(shifted(rows, cols));
+if std(R(:)) < eps || std(S(:)) < eps
+    s = -Inf; return;
+end
+s = corr2(R, S);
+end
+
 
 function [output, Greg] = dftregistration(buf1ft,buf2ft,usfac)
 % function [output Greg] = dftregistration(buf1ft,buf2ft,usfac);
@@ -358,7 +609,7 @@ if (nargout > 1)&&(usfac > 0),
 elseif (nargout > 1)&&(usfac == 0)
     Greg = buf2ft*exp(1i*diffphase);
 end
-return
+end
 
 
 function Greg = DFT_apply(buf2ft, p)
@@ -371,6 +622,7 @@ function Greg = DFT_apply(buf2ft, p)
    elseif p.usfac == 0
        Greg = buf2ft*exp(1i*p.diffphase);
    end
+end
 
 
 function out=dftups(in,nor,noc,usfac,roff,coff)
@@ -409,7 +661,7 @@ if exist('nor',  'var')~=1, nor=nr;  end
 kernc=exp((-1i*2*pi/(nc*usfac))*( ifftshift(0:nc-1).' - floor(nc/2) )*( (0:noc-1) - coff ));
 kernr=exp((-1i*2*pi/(nr*usfac))*( (0:nor-1).' - roff )*( ifftshift([0:nr-1]) - floor(nr/2)  ));
 out=kernr*in*kernc;
-return
+end
 
 
 function [ imFTout ] = FTpad(imFT,outsize)
@@ -445,6 +697,4 @@ imFTout(max(cenout_cen(1)+1,1):min(cenout_cen(1)+Nin(1),Nout(1)),max(cenout_cen(
     = imFT(max(-cenout_cen(1)+1,1):min(-cenout_cen(1)+Nout(1),Nin(1)),max(-cenout_cen(2)+1,1):min(-cenout_cen(2)+Nout(2),Nin(2)));
 
 imFTout = ifftshift(imFTout)*Nout(1)*Nout(2)/(Nin(1)*Nin(2));
-return
-
-
+end

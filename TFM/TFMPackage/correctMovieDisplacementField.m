@@ -306,7 +306,8 @@ if p.fillVectors
 
 %             if j== 1 && (iFigureDrawing==1 || nFailed==nMaxFailed)
             if k==1 % This is for publication purpose for PTVR
-                figure
+                hold off;
+                figure(2)
             end
             if nansum(v(idCloseEnough,1))>0
                 hold off
