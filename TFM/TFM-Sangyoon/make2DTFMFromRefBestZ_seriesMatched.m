@@ -3,10 +3,11 @@ function mdList = make2DTFMFromRefBestZ_seriesMatched(movieFile, refFile, outDir
 % - Handles multi-series Micro-Manager OME-TIFF (per Pos file)
 % - Matches movie series <-> ref series (default: same series index)
 % - For each series:
-%     1) find bestZ from ref series using bead channel
-%     2) extract that bestZ from movie series for all C,T
-%     3) write per-channel TIFF series
-%     4) create MovieData with metadata (pixelSize_, timeInterval_, emission wavelengths)
+%     1) find bestZ from ref series using bead channel (for reference slice only)
+%     2) for each movie timepoint, find bestZ(t) from movie bead channel
+%     3) extract that bestZ(t) from movie series for all C
+%     4) write per-channel TIFF series
+%     5) create MovieData with metadata (pixelSize_, timeInterval_, emission wavelengths)
 %
 % Output:
 %   mdList : MovieData array (one per series). If none, empty.
@@ -21,6 +22,8 @@ ip.addParameter('seriesMap', [], @(x) isempty(x) || isnumeric(x));
 
 ip.addParameter('writeRefSlice', true, @(x) islogical(x) && isscalar(x));
 ip.addParameter('frameDigits', 4, @(x) isnumeric(x) && isscalar(x) && x>=3);
+ip.addParameter('dynamicMovieBestZ', true, @(x) islogical(x) && isscalar(x));
+ip.addParameter('writeBestZLog', true, @(x) islogical(x) && isscalar(x));
 
 ip.parse(varargin{:});
 beadChan   = ip.Results.beadChan;
@@ -29,6 +32,8 @@ verbose    = ip.Results.verbose;
 seriesMap  = ip.Results.seriesMap;
 writeRef   = ip.Results.writeRefSlice;
 frameDigits= ip.Results.frameDigits;
+dynamicMovieBestZ = ip.Results.dynamicMovieBestZ;
+writeBestZLog = ip.Results.writeBestZLog;
 
 movieFile = char(movieFile);
 refFile   = char(refFile);
@@ -89,6 +94,10 @@ for sMov = 0:nSeriesMov-1
         warning('series %d: beadChan=%d exceeds ref C=%d. Skipping this series.', sMov, beadChan, Cref);
         continue;
     end
+    if C < beadChan
+        warning('series %d: beadChan=%d exceeds movie C=%d. Skipping this series.', sMov, beadChan, C);
+        continue;
+    end
     if Zref < 1 || Z < 1 || T < 1 || C < 1
         warning('series %d: invalid dimensions. Skipping.', sMov);
         continue;
@@ -122,7 +131,10 @@ for sMov = 0:nSeriesMov-1
         imwrite(Ibest, fullfile(refDir, sprintf('ref_beads_bestZ_series%03d.tif', sMov)));
     end
 
-    % ---- 2) Extract bestZ from movie series for all C,T ----
+    % ---- 2) Extract movie series using a frame-specific bestZ(t) ----
+    % If dynamicMovieBestZ is true, bestZ is chosen independently for each
+    % timepoint from the movie bead channel. The same bestZ(t) is then used
+    % for every channel at that timepoint, preserving channel registration.
     chDirs = cell(C,1);
     for c = 1:C
         chDirs{c} = fullfile(seriesDir, sprintf('ch%02d', c));
@@ -130,10 +142,26 @@ for sMov = 0:nSeriesMov-1
     end
 
     ffmt = ['%0' num2str(frameDigits) 'd'];
+    bestZMovie = nan(T,1);
+    bestScoreMovie = nan(T,1);
 
     for t = 1:T
+        if dynamicMovieBestZ
+            movieScores = zeros(Z,1);
+            for z = 1:Z
+                planeScore = movReader.getIndex(z-1, beadChan-1, t-1) + 1;
+                Ibeads = bfGetPlane(movReader, planeScore);
+                movieScores(z) = focusScore(Ibeads, metric);
+            end
+            [bestScoreMovie(t), zUse] = max(movieScores);
+        else
+            zUse = bestZ;
+            bestScoreMovie(t) = scores(bestZref);
+        end
+        bestZMovie(t) = zUse;
+
         for c = 1:C
-            plane = movReader.getIndex(bestZ-1, c-1, t-1) + 1;
+            plane = movReader.getIndex(zUse-1, c-1, t-1) + 1;
             I = bfGetPlane(movReader, plane);
 
             % enforce uint16 if needed (BioFormats sometimes returns uint8/uint16)
@@ -141,7 +169,21 @@ for sMov = 0:nSeriesMov-1
             imwrite(I, fullfile(chDirs{c}, sprintf(['frame_' ffmt '.tif'], t)));
         end
         if verbose && (mod(t, max(1,round(T/10)))==0)
-            fprintf('  [series %d] wrote frame %d/%d\n', sMov, t, T);
+            fprintf('  [series %d] wrote frame %d/%d | bestZ(movie)=%d\n', sMov, t, T, zUse);
+        end
+    end
+
+    if writeBestZLog
+        bestZLogFile = fullfile(seriesDir, 'bestZ_movie_per_frame.csv');
+        fid = fopen(bestZLogFile, 'w');
+        fprintf(fid, 'frame,bestZ_movie,bestScore_movie,ref_bestZ,metric,beadChan,dynamicMovieBestZ\n');
+        for t = 1:T
+            fprintf(fid, '%d,%d,%.10g,%d,%s,%d,%d\n', t, bestZMovie(t), bestScoreMovie(t), bestZref, char(metric), beadChan, dynamicMovieBestZ);
+        end
+        fclose(fid);
+        if verbose
+            fprintf('[TFMprep] series %d: saved bestZ log: %s\n', sMov, bestZLogFile);
+            fprintf('[TFMprep] series %d: movie bestZ range = %d to %d\n', sMov, min(bestZMovie), max(bestZMovie));
         end
     end
 
