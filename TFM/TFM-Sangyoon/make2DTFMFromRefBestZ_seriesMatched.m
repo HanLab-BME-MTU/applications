@@ -90,9 +90,12 @@ for sMov = 0:nSeriesMov-1
             sMov, Z, C, T, sRef, Zref, Cref, Tref);
     end
 
+    refBeadChan = beadChan;
     if Cref < beadChan
-        warning('series %d: beadChan=%d exceeds ref C=%d. Skipping this series.', sMov, beadChan, Cref);
-        continue;
+        disp(['series ' num2str(sMov) ': beadChan=' num2str(beadChan) ' exceeds ref C=' num2str(Cref) ...
+            '. Assuming only bead channel was taken for ref.']);
+        refBeadChan = 1;
+        % continue;
     end
     if C < beadChan
         warning('series %d: beadChan=%d exceeds movie C=%d. Skipping this series.', sMov, beadChan, C);
@@ -106,7 +109,7 @@ for sMov = 0:nSeriesMov-1
     % ---- 1) Find bestZ from ref bead channel (t=0) ----
     scores = zeros(Zref,1);
     for z = 1:Zref
-        plane = refReader.getIndex(z-1, beadChan-1, 0) + 1;
+        plane = refReader.getIndex(z-1, refBeadChan-1, 0) + 1;
         I = bfGetPlane(refReader, plane);
         scores(z) = focusScore(I, metric);
     end
@@ -126,7 +129,7 @@ for sMov = 0:nSeriesMov-1
     if writeRef
         refDir = fullfile(seriesDir,'reference');
         if ~exist(refDir,'dir'); mkdir(refDir); end
-        planeBest = refReader.getIndex(bestZref-1, beadChan-1, 0) + 1;
+        planeBest = refReader.getIndex(bestZref-1, refBeadChan-1, 0) + 1;
         Ibest = bfGetPlane(refReader, planeBest);
         imwrite(Ibest, fullfile(refDir, sprintf('ref_beads_bestZ_series%03d.tif', sMov)));
     end

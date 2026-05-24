@@ -1,135 +1,206 @@
-%% run_TFMpipeline_interactive.m
-% Segmentation (ThresholdProcess) -> TFMPackage pipeline runner
-%   - Select one or more movieList.mat files (multi-folder GUI)
-%   - Run segmentation first (SegmentationPackage: ThresholdProcess)
-%       * Supports Manual / Otsu / Gradient-based
-%       * Optional Gaussian blur (sigma in pixels)
-%   - Setup TFMPackage using user-provided parameters (no hardcoding)
-%   - Optionally set Step-4 regularization parameter
-%   - Run tfmRunML (serial by default)
+%% run_TFMpipeline_safe2.m
 %
-% Sangyoon Han (cleaned/updated)
+% SAFE version of run_TFMpipeline_interactive.m
+%
+% Pipeline:
+%   1) Interactive param prompt (CLI)
+%   2) Pick movieList.mat files using old-style uigetfile, not uifigure
+%   3) Segmentation: ThresholdProcess on CELL channel
+%   4) MaskRefinementProcess with default settings
+%   5) TFMPackage setup: bead channel for drift correction + displacement
+%   6) Run tfmRun movie-by-movie with progress
+%
+% Channel conventions:
+%   iBeadChan  = bead channel -> EfficientSubpixelRegistration + displacement
+%   segChan    = cell channel -> SegmentationPackage / ThresholdProcess
+%
+% Sangyoon Han
 
 clear; clc;
 
-%% ===== USER SETTINGS =====
-useParallel = false;   % recommended: serial for reproducibility
+%% ===== DEFAULTS =====
+useParallel = false; %#ok<NASGU> % tfmRun is called movie-by-movie below
 
-% ---- Defaults (user can override interactively) ----
 defaults = struct();
-defaults.iBeadChan       = 3;
-defaults.YoungModulus    = 2700;   % Pa
-defaults.PoissonRatio    = 0.49;
-defaults.regParam        = 0.005;
+defaults.iBeadChan    = 2;      % bead channel (for TFMPackage)
+defaults.segChan      = 1;      % cell channel (for Segmentation)
+defaults.YoungModulus = 2700;   % Pa
+defaults.PoissonRatio = 0.49;
+defaults.regParam     = 0.005;
+defaults.segModeIdx   = 2;      % 1=MinMax, 2=Otsu, 3=Rosin, 4=Gradient
+defaults.segGaussSigma= 2;      % pixels (0 = no blur)
+defaults.forceRerunSeg= false;
+defaults.minCorLength = 17;     % template window half-width (pixels)
+defaults.maxFlowSpeed = 20;     % max displacement (pixels per frame)
+defaults.addNonLocMaxBeads = false;  % add non-local-max beads (default off)
 
-defaults.segChan         = 1;      % channel used for segmentation
-defaults.segModeIdx      = 2;      % 1 Manual, 2 Otsu, 3 Gradient-based
-defaults.manualThresh    = 0.0;    % used only if Manual
-defaults.segGaussSigma   = 2;      % pixels (0 = none)
-
-defaults.forceRerunSeg   = false;  % if masks exist, skip unless true
-
+%% ===== INTERACTIVE PROMPT =====
 tfmParams = promptTFMSegParams(defaults);
 
 %% ===== PICK MOVIELISTS =====
-MLpaths = pickMovieListsMultiFolderGUI();
+% SAFE MODE: avoid uifigure/uilistbox hang.
+% Option A: paste one or more movieList.mat paths below and skip GUI.
+% Example:
+% MLpaths = {'/mnt/nas/path/to/movieList.mat'};
+MLpaths = {};
+
+% Option B: if MLpaths is empty, use old-style uigetfile.
+% This avoids the uifigure listbox that caused MATLAB/desktop freezing.
+if isempty(MLpaths)
+    MLpaths = pickMovieListsSafeUigetfile();
+end
 assert(~isempty(MLpaths), 'No movieList.mat selected.');
 
-%% ===== Ensure SegmentationPackage on path (ask once if missing) =====
+%% ===== Ensure SegmentationPackage on path =====
 ensureSegmentationPackageOnPath();
 
 %% ===== MAIN LOOP =====
-for ci = 1:numel(MLpaths)
+nML = numel(MLpaths);
+for ci = 1:nML
 
     mlPath = char(MLpaths{ci});
+    tML = tic;
     fprintf('\n====================================================\n');
-    fprintf('MovieList %d/%d\nML: %s\n', ci, numel(MLpaths), mlPath);
+    fprintf('[%s] MovieList %d/%d\n  %s\n', datestr(now,'HH:MM:SS'), ci, nML, mlPath);
+    fprintf('  beadChan=%d | segChan=%d | E=%.3g Pa | reg=%.3g\n', ...
+        tfmParams.iBeadChan, tfmParams.segChan, ...
+        tfmParams.YoungModulus, tfmParams.regParam);
     fprintf('====================================================\n');
     assert(exist(mlPath,'file')==2, 'movieList not found: %s', mlPath);
 
-    %% A) Load ML and run segmentation first
     ML = MovieList.load(mlPath, 'askUser', false);
     nMovies = numel(ML.movieDataFile_);
-    fprintf('[Info] nMovies = %d\n', nMovies);
 
-    fprintf('[Seg] Running ThresholdProcess (chan=%d, mode=%s, GaussSigma=%.2f px)\n', ...
-        tfmParams.segChan, tfmParams.segMode, tfmParams.segGaussSigma);
+    %% A) Segmentation (cell channel)
+    fprintf('[%s] Step A: Segmentation | %d movies | chan=%d | mode=%s\n', ...
+        datestr(now,'HH:MM:SS'), nMovies, tfmParams.segChan, tfmParams.segMode);
+    drawnow;
+
+    hSeg = waitbar(0, sprintf('Segmentation: 0/%d', nMovies), ...
+        'Name', sprintf('ML %d/%d', ci, nML));
 
     for i = 1:nMovies
         MD = ML.getMovie(i);
+        [~, mdName] = fileparts(MD.outputDirectory_);
+        fprintf('[%s]   Seg %d/%d: %s\n', datestr(now,'HH:MM:SS'), i, nMovies, mdName);
+        drawnow;
+
+        tSeg = tic;
         runThresholdSegmentationForMD(MD, tfmParams);
-        progressText(i/nMovies, sprintf('Segmentation: %d/%d', i, nMovies));
+        fprintf('[%s]   Seg %d/%d done (%.1f s)\n', ...
+            datestr(now,'HH:MM:SS'), i, nMovies, toc(tSeg));
+
+        if ishandle(hSeg)
+            waitbar(i/nMovies, hSeg, ...
+                sprintf('Segmentation: %d/%d  (%.0f s)', i, nMovies, toc(tSeg)));
+        end
+        drawnow;
     end
-    fprintf('\n[Seg] Done.\n');
+    if ishandle(hSeg), close(hSeg); end
+    fprintf('[%s] Step A done.\n', datestr(now,'HH:MM:SS'));
 
-    %% B) Setup TFMPackage
-    fprintf('[TFM-Setup] Setting up TFMPackage...\n');
+    %% B) TFMPackage setup
+    fprintf('[%s] Step B: TFMPackage setup (beadChan=%d)...\n', ...
+        datestr(now,'HH:MM:SS'), tfmParams.iBeadChan);
+    drawnow;
     setupTFMPackageForMovieList(mlPath, tfmParams);
+    fprintf('[%s] Step B done.\n', datestr(now,'HH:MM:SS'));
+    drawnow;
 
-    %% C) Reload ML after setup
+    %% C) Run TFM
     ML = MovieList.load(mlPath, 'askUser', false);
     nMovies = numel(ML.movieDataFile_);
+    fprintf('[%s] Step C: tfmRun movie-by-movie | %d movies\n', ...
+        datestr(now,'HH:MM:SS'), nMovies);
+    fprintf('  This step runs displacement + force calculation.\n');
+    fprintf('  Progress is printed per movie. Use Ctrl+C between movies if needed.\n');
+    drawnow;
 
-    %% D) Set Step-4 regParam (optional, but usually desired)
-    fprintf('[TFM] Setting Step-4 regParam = %.6g\n', tfmParams.regParam);
+    hTFM = waitbar(0, 'TFM running... see Command Window for detail', ...
+        'Name', sprintf('TFM ML %d/%d', ci, nML));
+    drawnow;
+
     for i = 1:nMovies
         MD = ML.getMovie(i);
-        iPack = MD.getPackageIndex('TFMPackage');
-        pack = MD.getPackage(iPack);
-
-        if numel(pack.processes_) >= 4 && ~isempty(pack.processes_{4})
-            forceProc = pack.processes_{4};
-            p = forceProc.funParams_;
-
-            if isfield(p,'regParam')
-                p.regParam = tfmParams.regParam;
-            elseif isfield(p,'regularizationParameter')
-                p.regularizationParameter = tfmParams.regParam;
-            else
-                warning('No regParam field found in Step-4 funParams_ for %s', MD.outputDirectory_);
-            end
-
-            forceProc.setPara(p);
-            MD.save();
-        else
-            warning('TFMPackage Step-4 not found for %s', MD.outputDirectory_);
+        [~, mdName] = fileparts(MD.outputDirectory_);
+        fprintf('[%s] TFM %d/%d: %s\n', datestr(now,'HH:MM:SS'), i, nMovies, mdName);
+        drawnow;
+        tTFM = tic;
+        try
+            tfmRun(MD);
+        catch ME
+            warning(ME.identifier, 'tfmRun failed for %s: %s', mdName, ME.message);
         end
+        elapsed = toc(tTFM);
+        fprintf('[%s] TFM %d/%d done (%.1f s)\n', ...
+            datestr(now,'HH:MM:SS'), i, nMovies, elapsed);
+        if ishandle(hTFM)
+            waitbar(i/nMovies, hTFM, ...
+                sprintf('TFM: %d/%d  %s  (%.0f s)', i, nMovies, mdName, elapsed));
+        end
+        drawnow;
     end
+    if ishandle(hTFM), close(hTFM); end
 
-    %% E) Run TFM
-    fprintf('[TFM] Running tfmRunML (parallel=%d)...\n', useParallel);
-    tfmRunML(ML, useParallel);
-
-    fprintf('[Done] %s\n', mlPath);
+    fprintf('[%s] MovieList %d/%d DONE (total %.1f min)\n', ...
+        datestr(now,'HH:MM:SS'), ci, nML, toc(tML)/60);
 end
 
-disp('All MovieLists finished.');
+fprintf('\n[%s] All %d MovieLists finished.\n', datestr(now,'HH:MM:SS'), nML);
 
-%% ===================== Segmentation helpers =====================
+%% =====================================================================
+%% LOCAL FUNCTIONS
+%% =====================================================================
 
-function ensureSegmentationPackageOnPath()
-% Ensure SegmentationPackage is available on MATLAB path.
-
-if exist('SegmentationPackage','class') == 8
+function MLpaths = pickMovieListsSafeUigetfile()
+% Old-style file picker. This intentionally avoids uifigure/uilistbox.
+MLpaths = {};
+[fn, fp] = uigetfile( ...
+    {'movieList.mat','movieList.mat'; '*.mat','MAT files (*.mat)'}, ...
+    'Select movieList.mat file(s)', 'MultiSelect', 'on');
+if isequal(fn,0)
     return;
 end
+if ischar(fn)
+    fn = {fn};
+end
+MLpaths = cellfun(@(n) fullfile(fp,n), fn, 'UniformOutput', false);
+MLpaths = unique(MLpaths(:)', 'stable');
 
-warning('SegmentationPackage not found on path. Please select the folder that contains SegmentationPackage code.');
-root = uigetdir(pwd, 'Select folder containing SegmentationPackage');
-assert(~isequal(root,0), 'User canceled selecting segmentation package folder.');
-
-addpath(genpath(root));
-
-assert(exist('SegmentationPackage','class') == 8, ...
-    'Still cannot find SegmentationPackage after addpath(genpath(%s)). Check folder selection.', root);
-
-fprintf('[Path] Added SegmentationPackage path: %s\n', root);
+bad = cellfun(@(p) exist(p,'file')~=2, MLpaths);
+if any(bad)
+    warning('run_TFM:missingML', 'Removing non-existent paths:\n%s', ...
+        strjoin(MLpaths(bad), newline));
+    MLpaths = MLpaths(~bad);
+end
 end
 
-function runThresholdSegmentationForMD(MD, tfmParams)
-% Configure and run ThresholdProcess using REAL ThresholdProcess fields.
+% ------------------------------------------------------------------
+function ensureSegmentationPackageOnPath()
+if exist('SegmentationPackage','class') == 8, return; end
+warning('run_TFM:noSegPkg', 'SegmentationPackage not found on path. Please select its folder.');
+root = uigetdir(pwd, 'Select folder containing SegmentationPackage');
+assert(~isequal(root,0), 'User cancelled SegmentationPackage folder selection.');
+addpath(genpath(root));
+assert(exist('SegmentationPackage','class') == 8, ...
+    'SegmentationPackage still not found after adding: %s', root);
+fprintf('[Path] SegmentationPackage added: %s\n', root);
+end
 
-% ---- Skip if masks exist ----
+% ------------------------------------------------------------------
+function runThresholdSegmentationForMD(MD, tfmParams)
+% Configure and run SegmentationPackage on the CELL channel (segChan).
+%   Process 1: ThresholdProcess  - automatic thresholding
+%   Process 2: MaskRefinementProcess - morphological cleanup (default params)
+%
+% beadChan is NOT involved here.
+%
+% Supported ThresholdProcess modes (all automatic):
+%   MinMax   : MethodIndx=1 - uses image min/max for threshold estimate
+%   Otsu     : MethodIndx=2 - Otsu's method (default)
+%   Rosin    : MethodIndx=3 - Rosin unimodal thresholding
+%   Gradient : MethodIndx=4 - gradient-based thresholding
+
 if ~tfmParams.forceRerunSeg
     anyMask = ~isempty(dir(fullfile(MD.outputDirectory_, 'masks', '**', '*.tif')));
     if anyMask
@@ -138,7 +209,6 @@ if ~tfmParams.forceRerunSeg
     end
 end
 
-% ---- Ensure SegmentationPackage ----
 iSeg = MD.getPackageIndex('SegmentationPackage');
 if isempty(iSeg)
     MD.addPackage(SegmentationPackage(MD));
@@ -146,238 +216,156 @@ if isempty(iSeg)
 end
 segPack = MD.getPackage(iSeg);
 
-% ---- Ensure ThresholdProcess (process #1) ----
+% Process 1: ThresholdProcess
 if isempty(segPack.processes_{1})
     segPack.createDefaultProcess(1);
 end
-proc = segPack.getProcess(1);
+proc1 = segPack.getProcess(1);
+fp1   = proc1.funParams_;
 
-% ---- Get & set funParams ----
-fp = proc.funParams_;
+fp1.ChannelIndex = tfmParams.segChan;
+fp1.BatchMode    = true;
 
-% Always segment only one channel here
-fp.ChannelIndex = tfmParams.segChan;
-
-% No GUI / batch mode
-fp.BatchMode = true;
-
-% Optional Gaussian blur sigma in pixels (0 = none)
-if isfield(fp,'GaussFilterSigma')
-    fp.GaussFilterSigma = tfmParams.segGaussSigma;
+if isfield(fp1,'GaussFilterSigma')
+    fp1.GaussFilterSigma = tfmParams.segGaussSigma;
 end
 
-% Select method
-% ThresholdProcess supports:
-%   1 = MinMax (manual threshold)
-%   2 = Otsu
-%   3 = Rosin
-%   4 = Gradient (best ?adaptive-ish? option in this package)
 segMode = lower(string(tfmParams.segMode));
-
 switch segMode
-    case "manual"
-        fp.MethodIndx      = 1;
-        fp.PreThreshold    = false;
-        fp.IsPercentile    = false;
-        fp.ThresholdValue  = tfmParams.manualThresh;  % e.g., 0 for "whole FOV is cell"
-
+    case "minmax"
+        fp1.MethodIndx     = 1;
+        fp1.PreThreshold   = false;
+        fp1.IsPercentile   = false;
+        fp1.ThresholdValue = [];
     case "otsu"
-        fp.MethodIndx      = 2;
-        fp.PreThreshold    = false;
-        fp.IsPercentile    = false;
-        fp.ThresholdValue  = [];   % let method decide
-
+        fp1.MethodIndx     = 2;
+        fp1.PreThreshold   = false;
+        fp1.IsPercentile   = false;
+        fp1.ThresholdValue = [];
+    case "rosin"
+        fp1.MethodIndx     = 3;
+        fp1.PreThreshold   = false;
+        fp1.IsPercentile   = false;
+        fp1.ThresholdValue = [];
     case "gradient"
-        fp.MethodIndx      = 4;
-        fp.PreThreshold    = false;
-        fp.IsPercentile    = false;
-        fp.ThresholdValue  = [];   % let method decide
-
+        fp1.MethodIndx     = 4;
+        fp1.PreThreshold   = false;
+        fp1.IsPercentile   = false;
+        fp1.ThresholdValue = [];
     otherwise
-        warning('[Seg] Unknown segMode=%s. Falling back to Otsu.', segMode);
-        fp.MethodIndx      = 2;
-        fp.PreThreshold    = false;
-        fp.IsPercentile    = false;
-        fp.ThresholdValue  = [];
+        warning('run_TFM:unknownSegMode', ...
+            'Unknown segMode "%s". Falling back to Otsu.', segMode);
+        fp1.MethodIndx     = 2;
+        fp1.PreThreshold   = false;
+        fp1.IsPercentile   = false;
+        fp1.ThresholdValue = [];
 end
 
-proc.setPara(fp);
+proc1.setPara(fp1);
 
-% ---- Run ----
-fprintf('  [Seg] ThresholdProcess: %s (chan=%d, mode=%s, sigma=%.2f)\n', ...
-    MD.outputDirectory_, tfmParams.segChan, tfmParams.segMode, tfmParams.segGaussSigma);
+fprintf('  [Seg-1/ThresholdProcess] chan=%d | mode=%s | sigma=%.1f | %s\n', ...
+    tfmParams.segChan, tfmParams.segMode, tfmParams.segGaussSigma, MD.outputDirectory_);
 
-if ismethod(proc,'run')
-    proc.run();
+if ismethod(proc1,'run')
+    proc1.run();
 else
-    feval(proc.funName_, MD, proc.funParams_);
+    feval(proc1.funName_, MD, proc1.funParams_);
+end
+
+% Process 2: MaskRefinementProcess
+try
+    if numel(segPack.processes_) < 2 || isempty(segPack.processes_{2})
+        segPack.createDefaultProcess(2);
+    end
+    proc2 = segPack.getProcess(2);
+    fp2   = proc2.funParams_;
+
+    if isfield(fp2,'ChannelIndex')
+        fp2.ChannelIndex = tfmParams.segChan;
+    end
+    if isfield(fp2,'BatchMode')
+        fp2.BatchMode = true;
+    end
+
+    proc2.setPara(fp2);
+
+    fprintf('  [Seg-2/MaskRefinementProcess] chan=%d | default params | %s\n', ...
+        tfmParams.segChan, MD.outputDirectory_);
+
+    if ismethod(proc2,'run')
+        proc2.run();
+    else
+        feval(proc2.funName_, MD, proc2.funParams_);
+    end
+catch ME
+    warning(ME.identifier, ...
+        'MaskRefinementProcess failed (non-fatal, ThresholdProcess mask still valid): %s', ME.message);
 end
 
 MD.save();
 end
 
-%% ===================== MovieList picker (multi-folder GUI) =====================
-
-function MLpaths = pickMovieListsMultiFolderGUI()
-% Multi-folder MovieList picker.
-
-if ~usejava('desktop')
-    error('GUI not available (no desktop). Please select movieList.mat paths in CLI mode.');
-end
-
-MLpaths = {};
-
-f = uifigure('Name','Select MovieLists (multi-folder)','Position',[200 200 860 420]);
-
-lst = uilistbox(f, ...
-    'Position',[20 70 820 330], ...
-    'Items',{}, ...
-    'Multiselect','on');
-
-uibutton(f,'Text','Add MovieList(s)...','Position',[20 20 140 30], ...
-    'ButtonPushedFcn', @(~,~) addFiles());
-
-uibutton(f,'Text','Add from Folder (recursive)...','Position',[170 20 190 30], ...
-    'ButtonPushedFcn', @(~,~) addFromFolderRecursive());
-
-uibutton(f,'Text','Remove selected','Position',[370 20 130 30], ...
-    'ButtonPushedFcn', @(~,~) removeSelected());
-
-uibutton(f,'Text','Clear','Position',[510 20 80 30], ...
-    'ButtonPushedFcn', @(~,~) set(lst,'Items',{}));
-
-uibutton(f,'Text','OK','Position',[720 20 50 30], ...
-    'ButtonPushedFcn', @(~,~) uiresume(f));
-
-uibutton(f,'Text','Cancel','Position',[780 20 60 30], ...
-    'ButtonPushedFcn', @(~,~) cancel());
-
-uiwait(f);
-
-if ~isvalid(f)
-    MLpaths = {};
-    return;
-end
-
-items = string(lst.Items(:));
-delete(f);
-
-MLpaths = cellstr(unique(items,'stable'));
-
-% validate existence
-bad = cellfun(@(p) exist(p,'file')~=2, MLpaths);
-if any(bad)
-    warning('Some selected paths do not exist and will be removed:\n%s', strjoin(string(MLpaths(bad)), newline));
-    MLpaths = MLpaths(~bad);
-end
-
-    function addFiles()
-        [fn, fp] = uigetfile({'movieList.mat','movieList.mat'; '*.mat','MAT-files (*.mat)'}, ...
-            'Select movieList.mat file(s)', 'MultiSelect','on');
-        if isequal(fn,0), return; end
-        if ischar(fn) || isstring(fn), fn = {fn}; end
-
-        newPaths = strings(numel(fn),1);
-        for ii = 1:numel(fn)
-            newPaths(ii) = fullfile(fp, fn{ii});
-        end
-
-        curr = string(lst.Items(:));
-        merged = unique([curr; newPaths(:)], 'stable');
-        lst.Items = cellstr(merged(:));
-    end
-
-    function addFromFolderRecursive()
-        root = uigetdir(pwd, 'Pick a folder (search recursively for movieList.mat)');
-        if isequal(root,0), return; end
-
-        d = dir(fullfile(root, '**', 'movieList.mat'));
-        hits = arrayfun(@(x) fullfile(x.folder, x.name), d(~[d.isdir]), 'UniformOutput', false);
-        if isempty(hits)
-            uialert(f, sprintf('No movieList.mat found under:\n%s', root), 'No matches');
-            return;
-        end
-
-        curr = string(lst.Items(:));
-        merged = unique([curr; string(hits(:))], 'stable');
-        lst.Items = cellstr(merged(:));
-    end
-
-    function removeSelected()
-        sel = string(lst.Value(:));
-        if isempty(sel), return; end
-        curr = string(lst.Items(:));
-        lst.Items = cellstr(curr(~ismember(curr, sel)));
-    end
-
-    function cancel()
-        delete(f);
-        MLpaths = {};
-    end
-end
-
-%% ===================== Interactive prompt for params =====================
-
+% ------------------------------------------------------------------
 function tfmParams = promptTFMSegParams(defaults)
-
 tfmParams = defaults;
+fprintf('\n=== TFM Pipeline Settings ===\n');
+fprintf('(Press Enter to keep default)\n\n');
 
-fprintf('\n=== Interactive settings ===\n');
-
-% Bead channel
-tmp = input(sprintf('Bead channel index (default %d): ', defaults.iBeadChan), 's');
+fprintf('-- TFM (bead channel) --\n');
+tmp = input(sprintf('Bead channel index [default %d]: ', defaults.iBeadChan), 's');
 if ~isempty(tmp), tfmParams.iBeadChan = str2double(tmp); end
 
-% Young modulus
-tmp = input(sprintf('Young''s modulus in Pa (default %.3g): ', defaults.YoungModulus), 's');
+tmp = input(sprintf('Young''s modulus in Pa [default %.3g]: ', defaults.YoungModulus), 's');
 if ~isempty(tmp), tfmParams.YoungModulus = str2double(tmp); end
 
-% Poisson ratio
-tmp = input(sprintf('Poisson ratio (default %.2f): ', defaults.PoissonRatio), 's');
+tmp = input(sprintf('Poisson ratio [default %.2f]: ', defaults.PoissonRatio), 's');
 if ~isempty(tmp), tfmParams.PoissonRatio = str2double(tmp); end
 
-% Regularization parameter
-tmp = input(sprintf('TFM regParam (default %.3g): ', defaults.regParam), 's');
+tmp = input(sprintf('Regularization param [default %.3g]: ', defaults.regParam), 's');
 if ~isempty(tmp), tfmParams.regParam = str2double(tmp); end
 
-% Segmentation channel
-tmp = input(sprintf('Segmentation channel index (default %d): ', defaults.segChan), 's');
+fprintf('\n-- Displacement field tracking (proc2) --\n');
+tmp = input(sprintf('Template window half-width in pixels [default %d]: ', defaults.minCorLength), 's');
+if ~isempty(tmp), tfmParams.minCorLength = str2double(tmp); end
+
+tmp = input(sprintf('Max displacement per frame in pixels [default %d]: ', defaults.maxFlowSpeed), 's');
+if ~isempty(tmp), tfmParams.maxFlowSpeed = str2double(tmp); end
+
+tmp = input(sprintf('Add non-local-max beads? 0/1 [default %d]: ', defaults.addNonLocMaxBeads), 's');
+if ~isempty(tmp), tfmParams.addNonLocMaxBeads = logical(str2double(tmp)); end
+
+fprintf('\n-- Segmentation (cell channel) --\n');
+tmp = input(sprintf('Cell channel index for segmentation [default %d]: ', defaults.segChan), 's');
 if ~isempty(tmp), tfmParams.segChan = str2double(tmp); end
 
-% Segmentation mode (ThresholdProcess MethodIndx)
-modes = {'Manual','Otsu','Gradient'};
-fprintf('\nSegmentation mode options (ThresholdProcess):\n');
-fprintf('  1) Manual (MinMax)  -> uses ThresholdValue\n');
-fprintf('  2) Otsu             -> automatic\n');
-fprintf('  3) Gradient-based   -> more adaptive-like\n');
-tmp = input(sprintf('Choose segmentation mode [1-%d] (default %d): ', numel(modes), defaults.segModeIdx), 's');
-
+modes = {'MinMax','Otsu','Rosin','Gradient'};
+fprintf('Segmentation mode (all automatic):\n');
+fprintf('  1) MinMax    - uses image min/max\n');
+fprintf('  2) Otsu      - Otsu method (default)\n');
+fprintf('  3) Rosin     - unimodal thresholding\n');
+fprintf('  4) Gradient  - gradient-based\n');
+tmp = input(sprintf('Choose [1-4] [default %d]: ', defaults.segModeIdx), 's');
 if isempty(tmp)
     tfmParams.segMode = modes{defaults.segModeIdx};
 else
-    idx = max(1, min(numel(modes), round(str2double(tmp))));
+    idx = max(1, min(4, round(str2double(tmp))));
     tfmParams.segMode = modes{idx};
 end
 
-% Manual threshold value if Manual selected
-if strcmpi(tfmParams.segMode,'Manual')
-    tmp = input(sprintf('Manual threshold value (default %.3f): ', defaults.manualThresh), 's');
-    if ~isempty(tmp), tfmParams.manualThresh = str2double(tmp); end
-else
-    tfmParams.manualThresh = defaults.manualThresh;
-end
-
-% Gaussian blur sigma
-tmp = input(sprintf('Gaussian blur sigma (pixels, 0 = none) (default %.2f): ', defaults.segGaussSigma), 's');
+tmp = input(sprintf('Gaussian blur sigma in pixels (0=none) [default %.1f]: ', defaults.segGaussSigma), 's');
 if ~isempty(tmp), tfmParams.segGaussSigma = str2double(tmp); end
 
-% Force rerun segmentation
-tmp = input(sprintf('Force rerun segmentation if masks exist? 0/1 (default %d): ', defaults.forceRerunSeg), 's');
+tmp = input(sprintf('Force rerun segmentation? 0/1 [default %d]: ', defaults.forceRerunSeg), 's');
 if ~isempty(tmp), tfmParams.forceRerunSeg = logical(str2double(tmp)); end
 
-fprintf('\n[TFM] beadChan=%d | E=%.3g Pa | nu=%.2f | reg=%.3g\n', ...
-    tfmParams.iBeadChan, tfmParams.YoungModulus, tfmParams.PoissonRatio, tfmParams.regParam);
-fprintf('[Seg] chan=%d | mode=%s | manualThr=%.3f | GaussSigma=%.2f px | forceRerun=%d\n\n', ...
-    tfmParams.segChan, tfmParams.segMode, tfmParams.manualThresh, tfmParams.segGaussSigma, tfmParams.forceRerunSeg);
-
+fprintf('\n=== Summary ===\n');
+fprintf('  beadChan       = %d  (drift correction + displacement tracking)\n', tfmParams.iBeadChan);
+fprintf('  segChan        = %d  (ThresholdProcess + MaskRefinementProcess)\n', tfmParams.segChan);
+fprintf('  E              = %.3g Pa | nu=%.2f | regParam=%.3g\n', ...
+    tfmParams.YoungModulus, tfmParams.PoissonRatio, tfmParams.regParam);
+fprintf('  minCorLength   = %d px (template window)\n', tfmParams.minCorLength);
+fprintf('  maxFlowSpeed   = %d px/frame\n',              tfmParams.maxFlowSpeed);
+fprintf('  addNonLocMax   = %d\n',                       tfmParams.addNonLocMaxBeads);
+fprintf('  segMode        = %s | sigma=%.1f px | forceRerun=%d\n\n', ...
+    tfmParams.segMode, tfmParams.segGaussSigma, tfmParams.forceRerunSeg);
 end
