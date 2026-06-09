@@ -16,10 +16,17 @@ p = parseProcessParams(proc);
 iChan = p.ChannelIndex;
 frames = p.ProcessFrames; if isempty(frames), frames = 1:movieData.nFrames_; end
 
+% locate P1 output directory directly from its funParams (robust to
+% outFilePaths_ being empty after process reconstruction from disk)
 iSeg = p.SegProcessIndex;
-if isempty(iSeg), iSeg = movieData.getProcessIndex('FilopodiaSegmentationProcess', 1, 0); end
+if isempty(iSeg)
+    iSeg = movieData.getProcessIndex('FilopodiaSegmentationProcess', 1, 0);
+end
 assert(~isempty(iSeg), 'FilopodiaSegmentationProcess must be run first.');
-segProc = movieData.processes_{iSeg};
+segProc  = movieData.processes_{iSeg};
+segOutDir = segProc.funParams_.OutputDirectory;
+assert(exist(segOutDir, 'dir') == 7, ...
+    'P1 output directory not found: %s\nRun FilopodiaSegmentationProcess first.', segOutDir);
 
 sigma = p.PSFsigma;
 psArgs = {'Alpha', p.Alpha};
@@ -28,7 +35,7 @@ if ~isempty(p.WindowSize), psArgs = [psArgs, {'WindowSize', p.WindowSize}]; end
 
 %% I/O
 inFilePaths = cell(1, numel(movieData.channels_));
-inFilePaths{1, iChan} = segProc.outFilePaths_{1, iChan};
+inFilePaths{1, iChan} = segOutDir;
 proc.setInFilePaths(inFilePaths);
 
 outDir = p.OutputDirectory; mkClrDir(outDir);
@@ -37,6 +44,13 @@ outFilePaths = cell(1, numel(movieData.channels_));
 outFilePaths{1, iChan} = outFile;
 proc.setOutFilePaths(outFilePaths);
 
+%% helper: load one frame of P1 output directly from the mat file
+    function s = loadSegFrame(t)
+        fname = fullfile(segOutDir, sprintf('filoSeg_frame_%04d.mat', t));
+        assert(exist(fname,'file')==2, 'P1 frame file missing: %s', fname);
+        s = load(fname);
+    end
+
 %% run
 nF = movieData.nFrames_;
 filoInfo = cell(1, nF);
@@ -44,9 +58,10 @@ movieInfo(1:nF) = struct('xCoord', [], 'yCoord', [], 'amp', []);
 
 for t = frames
     img = double(movieData.channels_(iChan).loadImage(t));
-    bodyMask = segProc.loadChannelOutput(iChan, t, 'output', 'bodyMask');
-    res      = segProc.loadChannelOutput(iChan, t, 'output', 'res');
-    theta    = segProc.loadChannelOutput(iChan, t, 'output', 'theta');
+    seg = loadSegFrame(t);
+    bodyMask = seg.bodyMask;
+    res      = seg.res;
+    theta    = seg.theta;
 
     % --- bright talin puncta ---
     pstruct = pointSourceDetection(img, sigma, psArgs{:});
@@ -57,7 +72,7 @@ for t = frames
     [H, W] = size(bodyMask);
     rc = sub2ind([H W], min(max(round(py),1),H), min(max(round(px),1),W));
     inBody  = bodyMask(rc);
-    distOut = bwdist(bodyMask);              % 0 inside, distance outside
+    distOut = bwdist(bodyMask);
     dPt = distOut(rc);
     isBase = inBody | (dPt <= p.BaseSearchBand);
     isTip  = (~inBody) & (dPt > p.BaseSearchBand) & (dPt <= p.TipMaxDistFromBody);
@@ -70,30 +85,31 @@ for t = frames
     baseForTip = pairFilopodiaTipBase(tipXY, baseXY, p.MaxTipBaseDist);
 
     % --- trace shaft for each matched pair ---
-    fi = struct('tipPos', {}, 'tipAmp', {}, 'basePos', {}, 'baseAmp', {}, ...
-        'centerline', {}, 'arc', {}, 'length', {}, 'shaftMeanInt', {}, 'frame', {});
+    fi = struct('tipPos',{}, 'tipAmp',{}, 'basePos',{}, 'baseAmp',{}, ...
+        'centerline',{}, 'arc',{}, 'length',{}, 'shaftMeanInt',{}, 'frame',{});
     for it = 1:size(tipXY, 1)
         jb = baseForTip(it);
         if isnan(jb), continue; end
         [cl, arc, len, ok] = traceFilopodiaShaft(res, theta, ...
-            tipXY(it, :), baseXY(jb, :), p);
+            tipXY(it,:), baseXY(jb,:), p);
         if ~ok || len < p.MinFiloLength, continue; end
         idxLine = sub2ind([H W], min(max(round(cl(:,2)),1),H), ...
-            min(max(round(cl(:,1)),1),W));
+                                 min(max(round(cl(:,1)),1),W));
         e = numel(fi) + 1;
-        fi(e).tipPos = tipXY(it, :); fi(e).tipAmp = tipA(it);
-        fi(e).basePos = baseXY(jb, :); fi(e).baseAmp = baseA(jb);
-        fi(e).centerline = cl; fi(e).arc = arc; fi(e).length = len;
-        fi(e).shaftMeanInt = mean(img(idxLine)); fi(e).frame = t;
+        fi(e).tipPos      = tipXY(it,:); fi(e).tipAmp  = tipA(it);
+        fi(e).basePos     = baseXY(jb,:); fi(e).baseAmp = baseA(jb);
+        fi(e).centerline  = cl;  fi(e).arc    = arc;
+        fi(e).length      = len; fi(e).shaftMeanInt = mean(img(idxLine));
+        fi(e).frame       = t;
     end
     filoInfo{t} = fi;
 
-    % --- tracker-compatible detections (tips) ---
+    % tracker-compatible detections (tips)
     if ~isempty(fi)
         tips = cat(1, fi.tipPos);
         movieInfo(t).xCoord = [tips(:,1), zeros(size(tips,1),1)];
         movieInfo(t).yCoord = [tips(:,2), zeros(size(tips,1),1)];
-        movieInfo(t).amp    = [cat(1, fi.tipAmp), zeros(numel(fi),1)];
+        movieInfo(t).amp    = [cat(1,fi.tipAmp), zeros(numel(fi),1)];
     end
 end
 
