@@ -70,6 +70,9 @@ for k = 1:size(nb, 1)
     valid = nr >= 1 & nr <= h & ncl >= 1 & ncl <= w;
     a = idx(valid);
     b = sub2ind([h w], nr(valid), ncl(valid));
+    kp = b > a;                              % add each undirected edge once
+    a = a(kp); b = b(kp);
+    if isempty(a), continue; end
     stepLen = hypot(dr, dc);
     stepAng = atan2(dr, dc);                 % direction of this edge
     % orientation mismatch vs local ridge (undirected -> fold to [0 pi/2])
