@@ -1,5 +1,4 @@
-%% runTFMprepCZI.m
-
+%% runTFMprep.m
 % General TFM preprocessing script.
 % Asks for data folder and output folder, then automatically:
 %   1) Finds all CZI files
@@ -75,17 +74,33 @@ if isempty(refFiles)
 end
 
 %% ---- Extract position number from filename ----
-% Handles formats: _P-02-, _P02_, _P-02_, P-02-, P02-, etc.
+% % Handles formats: _P-02-, _P02_, _P-02_, P-02-, P02-, etc.
+% function pos = extractPos(name)
+%     % Handle formats: -P01-, _P-02-, _P02_, P04_, -P04-
+%     % Step 1: try with word boundary around Pdigits
+%     tok = regexp(name, '[-_\s]P[-_]?0*(\d+)[-_\s]', 'tokens', 'once');
+%     if ~isempty(tok), pos = tok{1}; return; end
+%     % Step 2: P at end of token (e.g. P01-Airyscan)
+%     tok = regexp(name, '[-_\s]P[-_]?0*(\d+)\b', 'tokens', 'once');
+%     if ~isempty(tok), pos = tok{1}; return; end
+%     % Step 3: any P followed by digits
+%     tok = regexp(name, '\bP0*(\d+)\b', 'tokens', 'once');
+%     if ~isempty(tok), pos = tok{1}; return; end
+%     pos = '';
+% end
+
 function pos = extractPos(name)
-    % Handle formats: -P01-, _P-02-, _P02_, P04_, -P04-
-    % Step 1: try with word boundary around Pdigits
+    % Step 1: mid-filename with separator before P
     tok = regexp(name, '[-_\s]P[-_]?0*(\d+)[-_\s]', 'tokens', 'once');
     if ~isempty(tok), pos = tok{1}; return; end
-    % Step 2: P at end of token (e.g. P01-Airyscan)
+    % Step 2: P at end of token
     tok = regexp(name, '[-_\s]P[-_]?0*(\d+)\b', 'tokens', 'once');
     if ~isempty(tok), pos = tok{1}; return; end
-    % Step 3: any P followed by digits
-    tok = regexp(name, '\bP0*(\d+)\b', 'tokens', 'once');
+    % Step 3: P at very start of filename (e.g. "P03_KO HELA...")
+    tok = regexp(name, '^P0*(\d+)[_\-\s]', 'tokens', 'once');
+    if ~isempty(tok), pos = tok{1}; return; end
+    % Step 4: last resort
+    tok = regexp(name, '(?<![A-Za-z])P0*(\d+)(?!\d)', 'tokens', 'once');
     if ~isempty(tok), pos = tok{1}; return; end
     pos = '';
 end

@@ -417,16 +417,48 @@ for j= firstFrame:nFrames
         [pivPar, pivData] = pivParams(pivData,pivPar,'defaults');     
         % Set the size of interrogation areas via fields |iaSizeX| and |iaSizeY| of |pivPar| variable:
 %         pivPar.iaSizeX = [64 32 16 2^(nextpow2(p.minCorLength)-1)];     % size of interrogation area in X 
-        nextPow2max=nextpow2(p.maxFlowSpeed);
-        nextPow2corLeng=nextpow2(p.minCorLength);
-        
-        sizeArray=2.^([nextPow2max+1 nextPow2max nextPow2max nextPow2max-1]);
-        stepArray=2.^([nextPow2corLeng+1 nextPow2corLeng+1 nextPow2corLeng nextPow2corLeng-1]); % chaned from going down to -2
-        pivPar.anNpasses = length(stepArray);
-        pivPar.iaSizeX = sizeArray;     % size of interrogation area in X 
+        % --- Robust PIV interrogation-window setup ---
+        % Older code derived the final pass directly from maxFlowSpeed:
+        %   sizeArray = 2.^([nextPow2max+1 nextPow2max nextPow2max nextPow2max-1]);
+        % If maxFlowSpeed is very small (e.g., 1 px), this creates IA sizes
+        % of 2, 1, or 0.5 px. PIVsuite then fails in pivInterrogate or
+        % pivCrossCorr because the correlation peak image dimensions become
+        % invalid (e.g., trying to write 3x3 cc into a 2x2 block).
+        % Keep the user-requested max displacement for search, but enforce
+        % a sane minimum interrogation area for PIV passes.
+        maxFlowForPIV = max(4, double(p.maxFlowSpeed));
+        minCorForPIV  = max(4, double(p.minCorLength));
+
+        nextPow2max     = max(2, nextpow2(maxFlowForPIV));
+        nextPow2corLeng = max(2, nextpow2(minCorForPIV));
+
+        sizeArray = 2.^([nextPow2max+1 nextPow2max nextPow2max nextPow2max-1]);
+        stepArray = 2.^([nextPow2corLeng+1 nextPow2corLeng+1 nextPow2corLeng nextPow2corLeng-1]);
+
+        % Remove too-small passes. PIVsuite is not reliable with IA < 4 px,
+        % and 2 px windows can produce 3x3 correlation maps that cannot be
+        % assigned into 2x2 blocks.
+        keepPass = (sizeArray >= 4) & (stepArray >= 2);
+        sizeArray = sizeArray(keepPass);
+        stepArray = stepArray(keepPass);
+
+        % Ensure integer-valued vectors and matching lengths.
+        sizeArray = round(sizeArray(:)');
+        stepArray = round(stepArray(:)');
+
+        if isempty(sizeArray) || isempty(stepArray)
+            sizeArray = [8 4];
+            stepArray = [8 4];
+        end
+
+        pivPar.anNpasses = numel(sizeArray);
+        pivPar.iaSizeX = sizeArray;     % size of interrogation area in X
         pivPar.iaStepX = stepArray;     % grid spacing of velocity vectors in X
-        pivPar.iaSizeY = sizeArray;     % size of interrogation area in X 
-        pivPar.iaStepY = stepArray;    % grid spacing of velocity vectors in X
+        pivPar.iaSizeY = sizeArray;     % size of interrogation area in Y
+        pivPar.iaStepY = stepArray;     % grid spacing of velocity vectors in Y
+
+        fprintf('  [PIV] maxFlowSpeed(input)=%.3g | minCorLength(input)=%.3g | iaSize=[%s] | iaStep=[%s]\n', ...
+            p.maxFlowSpeed, p.minCorLength, num2str(sizeArray), num2str(stepArray));
 %         pivPar.iaSizeX = [64 32 16 8];     % size of interrogation area in X 
 %         pivPar.iaStepX = [32 16  8 4];     % grid spacing of velocity vectors in X
 %         pivPar.iaSizeY = [64 32 16 8];     % size of interrogation area in X 
