@@ -1,8 +1,4 @@
 classdef FilopodiaSegmentationProcess < ImageAnalysisProcess
-    % Process 1. Cell body mask + steerable ridge maps (res/theta/nms/scaleMap)
-    % used downstream to anchor and trace filopodial shafts.
-    % Output base is ImageAnalysisProcess (mixed image-analysis output), unlike
-    % FocalAdhesionSegmentationProcess which is mask-only.
 
     methods (Access = public)
         function obj = FilopodiaSegmentationProcess(owner, varargin)
@@ -29,17 +25,22 @@ classdef FilopodiaSegmentationProcess < ImageAnalysisProcess
         end
 
         function varargout = loadChannelOutput(obj, iChan, iFrame, varargin)
-            outputList = {'bodyMask', 'res', 'theta', 'nms', 'scaleMap'};
+            % Load one frame's segmentation result directly from the output
+            % directory stored in funParams_ (robust to outFilePaths_ being empty).
+            outputList = {'bodyMask','res','theta','nms','scaleMap','shaftMask'};
             ip = inputParser;
-            ip.addRequired('iChan', @(x) isscalar(x) && obj.checkChanNum(x));
+            ip.addRequired('iChan',  @(x) isscalar(x) && obj.checkChanNum(x));
             ip.addRequired('iFrame', @(x) isscalar(x) && obj.checkFrameNum(x));
-            ip.addParamValue('output', outputList, @(x) all(ismember(x, outputList)));
-            ip.addParamValue('useCache', true, @islogical);
+            ip.addParamValue('output',   outputList, @(x) all(ismember(x, outputList)));
+            ip.addParamValue('useCache', true,       @islogical);
             ip.parse(iChan, iFrame, varargin{:});
             output = ip.Results.output;
             if ischar(output), output = {output}; end
-            fname = fullfile(obj.outFilePaths_{1, iChan}, ...
-                sprintf('filoSeg_frame_%04d.mat', iFrame));
+
+            outDir = obj.funParams_.OutputDirectory;
+            fname  = fullfile(outDir, sprintf('filoSeg_frame_%04d.mat', iFrame));
+            assert(exist(fname,'file')==2, ...
+                'P1 frame file not found: %s\nRun FilopodiaSegmentationProcess first.', fname);
             s = cached.load(fname, '-useCache', ip.Results.useCache, output{:});
             for k = 1:numel(output), varargout{k} = s.(output{k}); end %#ok<AGROW>
         end
@@ -47,7 +48,7 @@ classdef FilopodiaSegmentationProcess < ImageAnalysisProcess
 
     methods (Static)
         function name = getName(), name = 'Filopodia Segmentation'; end
-        function h = GUI(), h = @abstractProcessGUI; end   % TODO custom GUI
+        function h = GUI(), h = @abstractProcessGUI; end
 
         function funParams = getDefaultParams(owner, varargin)
             ip = inputParser;
@@ -57,15 +58,15 @@ classdef FilopodiaSegmentationProcess < ImageAnalysisProcess
             outputDir = ip.Results.outputDir;
 
             funParams.OutputDirectory   = [outputDir filesep 'FilopodiaSegmentation'];
-            funParams.ChannelIndex      = 1;            % talin-GFP
-            funParams.SteerableOrder    = 4;            % even -> ridge detector
-            funParams.SigmaArray        = [1 2 4];      % px; tune to talin PSF
-            funParams.BodyThreshold     = 'rosin';      % 'rosin'|'otsu'|scalar
-            funParams.BodyMinArea       = 500;          % px
-            funParams.BodyClosingRadius = 3;            % px
-            funParams.HysteresisHigh    = [];           % []->auto (bkg-based)
+            funParams.ChannelIndex      = 1;
+            funParams.SteerableOrder    = 4;
+            funParams.SigmaArray        = [1 2 4];
+            funParams.BodyThreshold     = 'rosin';
+            funParams.BodyMinArea       = 500;
+            funParams.BodyClosingRadius = 3;
+            funParams.HysteresisHigh    = [];
             funParams.HysteresisLow     = [];
-            funParams.ProcessFrames     = [];           % []->all
+            funParams.ProcessFrames     = [];
             funParams.BatchMode         = false;
         end
     end
