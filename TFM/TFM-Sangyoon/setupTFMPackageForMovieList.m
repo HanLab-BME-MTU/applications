@@ -1,4 +1,4 @@
-function setupTFMPackageForMovieList(movieListPath, tfmParams)
+function setupTFMPackageForMovieList(movieListInput, tfmParams)
 % setupTFMPackageForMovieList
 %
 % Sets up TFMPackage for every MD in a MovieList.
@@ -18,10 +18,20 @@ function setupTFMPackageForMovieList(movieListPath, tfmParams)
 %   tfmParams     : struct with any of the fields in defaultTFMParams().
 %                   Accepts both .beadChan and .iBeadChan for bead channel.
 
-movieListPath = char(movieListPath);
-assert(exist(movieListPath,'file')==2, 'movieListPath not found: %s', movieListPath);
+% Accept either:
+%   1) movieList.mat path
+%   2) already-loaded MovieList object
+if isa(movieListInput, 'MovieList')
+    ML = movieListInput;
+    fprintf('[setupTFMPackage] Using pre-loaded MovieList object.\n');
+else
+    movieListPath = char(movieListInput);
+    assert(exist(movieListPath,'file')==2, ...
+        'movieListPath not found: %s', movieListPath);
+    fprintf('[setupTFMPackage] Loading MovieList from disk...\n');
+    ML = MovieList.load(movieListPath);
+end
 
-ML = MovieList.load(movieListPath);
 nMovies = numel(ML.movieDataFile_);
 
 % ---- Merge user params over defaults ----
