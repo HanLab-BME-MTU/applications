@@ -6,15 +6,16 @@
 
 %% ===================== CONFIG =====================
 % Provide either a path to movieData.mat or an MD already in the workspace.
-mdPath   = '';            % e.g. '/path/to/Cell04/movieData.mat'; '' -> use MD var
+mdPath   = '/mnt/nas/Collaborations/Celine_San_Diego/20260411/Soft-KO/KO_HELA_TALIN_G_BEAD_R_soft_40_nm_P_03_Airyscan_Processing_Processed_2_P3/KO HELA TALIN-G BEAD-R-soft 40 nm_P-03-Airyscan Processing-Processed 2.mat';            % e.g. '/path/to/Cell04/movieData.mat'; '' -> use MD var
 iChanTal = 1;             % talin-GFP channel index
 tFrame   = 1;             % frame to inspect in QC
 
 if isempty(mdPath)
     assert(exist('MD','var')==1, 'Load MD or set mdPath.');
 else
-    S = load(mdPath); fn = fieldnames(S); MD = S.(fn{1});
-    MD.sanityCheck;       % refresh paths if relocated
+    % S = load(mdPath); fn = fieldnames(S); MD = S.(fn{1});
+    MD = MovieData.load(mdPath);
+    % MD.sanityCheck;       % refresh paths if relocated
 end
 fprintf('Movie: %d channels, %d frames, pixelSize=%g nm, dt=%g s\n', ...
     numel(MD.channels_), MD.nFrames_, MD.pixelSize_, MD.timeInterval_);
@@ -34,11 +35,16 @@ pp.SteerableOrder = 4;            % ridge detector
 pp.SigmaArray     = [1 2 4];      % px; lower these if shafts are very thin
 pp.BodyThreshold  = 'rosin';      % 'rosin'|'otsu'|numeric
 pp.ProcessFrames  = [];           % set to tFrame to test a single frame fast
+
+% pp.SigmaArray        = [1 2];    % sigma=4 deletion -> central blob supression
+pp.BodyClosingRadius = 4;       % px, boundary smoothing
+
+
 segProc.setPara(pp);
 
 tic; segProc.run(); toc
 
-% ---- QC P1: body mask + ridge response on tFrame ----
+%% ---- QC P1: body mask + ridge response on tFrame ----
 img = double(MD.channels_(iChanTal).loadImage(tFrame));
 bodyMask = segProc.loadChannelOutput(iChanTal, tFrame, 'output','bodyMask');
 res      = segProc.loadChannelOutput(iChanTal, tFrame, 'output','res');
@@ -65,11 +71,12 @@ pp2.ChannelIndex     = iChanTal;
 if ~isempty(MD.channels_(iChanTal).psfSigma_)
     pp2.PSFsigma = MD.channels_(iChanTal).psfSigma_;
 else
-    pp2.PSFsigma = 1.5;          % TUNE: ~ (PSF FWHM in px)/2.355
+    pp2.PSFsigma = 2.3;          % TUNE: ~ (PSF FWHM in px)/2.355
 end
 pp2.Alpha             = 0.05;
 pp2.TipMaxDistFromBody = 50;     % TUNE: max filopodium reach (px) from body
-pp2.BaseSearchBand     = 5;      % TUNE: px band at body edge counted as base
+% pp2.BaseSearchBand     = 5;      % TUNE: px band at body edge counted as base
+pp2.BaseSearchBand   = 12;       % px, base expansion
 pp2.MaxTipBaseDist     = 100;    % TUNE: max plausible filo length (px)
 pp2.OrientTolerance    = 30;     % TUNE: deg; raise if traces miss bends
 pp2.OrientLambda       = 2;      % TUNE: raise to force ridge-following
@@ -87,6 +94,8 @@ fprintf('Frame %d: %d filopodia detected\n', tFrame, numel(fi));
 img = double(MD.channels_(iChanTal).loadImage(tFrame));
 figure('Name','P2 QC','Color','w');
 imagesc(img); axis image off; colormap(gray); hold on;
+clim([100 600])
+
 for k = 1:numel(fi)
     cl = fi(k).centerline;
     plot(cl(:,1), cl(:,2), 'y-', 'LineWidth', 1.2);      % shaft trace
