@@ -1,10 +1,12 @@
 function detectMovieFilopodia(movieData)
-%DETECTMOVIEFILOPODIA  Process 2 wrapper. Tip/base puncta + shaft tracing.
+%DETECTMOVIEFILOPODIA  Process 2 wrapper. Tip puncta + tip->body shaft trace.
 %
-% pointSourceDetection on the talin channel -> bright puncta. Classify by the
-% body mask (inside/edge band -> base/FA; outside within range -> tip). Pair
-% tip<->base by LAP, then trace each shaft as a min-cost path on the steerable
-% response. Saves a tracker-compatible movieInfo and the rich filoInfo.
+% pointSourceDetection on the talin channel finds bright puncta; puncta
+% outside the body within range are tip candidates. Each tip is traced to the
+% body edge with traceFilopodiaToBody, which defines the base geometrically as
+% the body-boundary contact point. No punctum-based base detection or LAP
+% pairing is needed. Tips whose trace cannot reach the body are dropped.
+% Saves a tracker-compatible movieInfo and the rich filoInfo.
 % Sangyoon J. Han / 2026
 
 %% process & params
@@ -14,19 +16,29 @@ proc = movieData.processes_{iProc};
 p = parseProcessParams(proc);
 
 iChan = p.ChannelIndex;
-frames = p.ProcessFrames; if isempty(frames), frames = 1:movieData.nFrames_; end
 
-% locate P1 output directory directly from its funParams (robust to
-% outFilePaths_ being empty after process reconstruction from disk)
+% locate P1 output directory directly from its funParams
 iSeg = p.SegProcessIndex;
 if isempty(iSeg)
     iSeg = movieData.getProcessIndex('FilopodiaSegmentationProcess', 1, 0);
 end
 assert(~isempty(iSeg), 'FilopodiaSegmentationProcess must be run first.');
-segProc  = movieData.processes_{iSeg};
+segProc   = movieData.processes_{iSeg};
 segOutDir = segProc.funParams_.OutputDirectory;
 assert(exist(segOutDir, 'dir') == 7, ...
     'P1 output directory not found: %s\nRun FilopodiaSegmentationProcess first.', segOutDir);
+
+% frames = intersection of requested frames and frames P1 produced
+segFiles  = dir(fullfile(segOutDir, 'filoSeg_frame_*.mat'));
+segFrames = cellfun(@(n) sscanf(n, 'filoSeg_frame_%d.mat'), {segFiles.name});
+frames = p.ProcessFrames; if isempty(frames), frames = 1:movieData.nFrames_; end
+missing = setdiff(frames, segFrames);
+if ~isempty(missing)
+    warning(['P1 output missing for %d frame(s) (e.g. frame %d). Skipping. ' ...
+        'Re-run P1 with matching ProcessFrames.'], numel(missing), missing(1));
+end
+frames = intersect(frames, segFrames);
+assert(~isempty(frames), 'No frames have P1 output. Run P1 first.');
 
 sigma = p.PSFsigma;
 psArgs = {'Alpha', p.Alpha};
@@ -44,7 +56,6 @@ outFilePaths = cell(1, numel(movieData.channels_));
 outFilePaths{1, iChan} = outFile;
 proc.setOutFilePaths(outFilePaths);
 
-%% helper: load one frame of P1 output directly from the mat file
     function s = loadSegFrame(t)
         fname = fullfile(segOutDir, sprintf('filoSeg_frame_%04d.mat', t));
         assert(exist(fname,'file')==2, 'P1 frame file missing: %s', fname);
@@ -62,43 +73,37 @@ for t = frames
     bodyMask = seg.bodyMask;
     res      = seg.res;
     theta    = seg.theta;
+    [H, W] = size(bodyMask);
 
     % --- bright talin puncta ---
     pstruct = pointSourceDetection(img, sigma, psArgs{:});
     if isempty(pstruct) || isempty(pstruct.x), continue; end
     px = pstruct.x(:); py = pstruct.y(:); pa = pstruct.A(:);
 
-    % --- classify by body mask / distance to body ---
-    [H, W] = size(bodyMask);
+    % --- tip candidates: puncta outside the body, within reach ---
     rc = sub2ind([H W], min(max(round(py),1),H), min(max(round(px),1),W));
     inBody  = bodyMask(rc);
-    distOut = bwdist(bodyMask);
+    distOut = bwdist(bodyMask);                       % 0 inside, dist outside
     dPt = distOut(rc);
-    isBase = inBody | (dPt <= p.BaseSearchBand);
-    isTip  = (~inBody) & (dPt > p.BaseSearchBand) & (dPt <= p.TipMaxDistFromBody);
+    isTip = (~inBody) & (dPt > p.BaseSearchBand) & (dPt <= p.TipMaxDistFromBody);
+    tipXY = [px(isTip), py(isTip)];  tipA = pa(isTip);
+    if isempty(tipXY), continue; end
 
-    tipXY  = [px(isTip),  py(isTip)];   tipA  = pa(isTip);
-    baseXY = [px(isBase), py(isBase)];  baseA = pa(isBase);
-    if isempty(tipXY) || isempty(baseXY), continue; end
-
-    % --- global tip<->base assignment ---
-    baseForTip = pairFilopodiaTipBase(tipXY, baseXY, p.MaxTipBaseDist);
-
-    % --- trace shaft for each matched pair ---
+    % --- trace each tip to the body; base = body-edge contact ---
     fi = struct('tipPos',{}, 'tipAmp',{}, 'basePos',{}, 'baseAmp',{}, ...
         'centerline',{}, 'arc',{}, 'length',{}, 'shaftMeanInt',{}, 'frame',{});
     for it = 1:size(tipXY, 1)
-        jb = baseForTip(it);
-        if isnan(jb), continue; end
-        [cl, arc, len, ok] = traceFilopodiaShaft(res, theta, ...
-            tipXY(it,:), baseXY(jb,:), p);
+        [cl, arc, len, basePos, ok] = traceFilopodiaToBody(res, theta, ...
+            bodyMask, tipXY(it,:), p);
         if ~ok || len < p.MinFiloLength, continue; end
         idxLine = sub2ind([H W], min(max(round(cl(:,2)),1),H), ...
                                  min(max(round(cl(:,1)),1),W));
+        bpx = min(max(round(basePos(1)),1),W);
+        bpy = min(max(round(basePos(2)),1),H);
         e = numel(fi) + 1;
         fi(e).tipPos      = tipXY(it,:); fi(e).tipAmp  = tipA(it);
-        fi(e).basePos     = baseXY(jb,:); fi(e).baseAmp = baseA(jb);
-        fi(e).centerline  = cl;  fi(e).arc    = arc;
+        fi(e).basePos     = basePos;     fi(e).baseAmp = img(bpy, bpx);
+        fi(e).centerline  = cl;  fi(e).arc = arc;
         fi(e).length      = len; fi(e).shaftMeanInt = mean(img(idxLine));
         fi(e).frame       = t;
     end
@@ -114,5 +119,5 @@ for t = frames
 end
 
 save(outFile, 'movieInfo', 'filoInfo', '-v7.3');
-disp('Filopodia detection done.');
+fprintf('Filopodia detection done. Frames: %s\n', mat2str(frames));
 end
