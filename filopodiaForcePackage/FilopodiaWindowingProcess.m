@@ -52,7 +52,7 @@ classdef FilopodiaWindowingProcess < DataProcessingProcess
             ip.parse(owner, varargin{:});
             outputDir = ip.Results.outputDir;
 
-            funParams.OutputDirectory  = [outputDir filesep 'FilopodiaWindowing'];
+            funParams.OutputDirectory  = [outputDir filesep 'FilopodiaForcePackage' filesep 'FilopodiaWindowing'];
             funParams.ChannelIndex     = 1;
             funParams.TrackProcessIndex = [];     % []->find FilopodiaTrackingProcess
             funParams.WindowMode       = 'normalized';  % 'normalized'|'fixed'

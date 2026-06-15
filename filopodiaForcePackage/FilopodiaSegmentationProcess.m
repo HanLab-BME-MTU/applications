@@ -57,7 +57,7 @@ classdef FilopodiaSegmentationProcess < ImageAnalysisProcess
             ip.parse(owner, varargin{:});
             outputDir = ip.Results.outputDir;
 
-            funParams.OutputDirectory   = [outputDir filesep 'FilopodiaSegmentation'];
+            funParams.OutputDirectory   = [outputDir filesep 'FilopodiaForcePackage' filesep 'FilopodiaSegmentation'];
             funParams.ChannelIndex      = 1;
             funParams.SteerableOrder    = 4;
             funParams.SigmaArray        = [1 2 4];

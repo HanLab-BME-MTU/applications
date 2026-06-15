@@ -52,7 +52,7 @@ classdef FilopodiaSamplingProcess < DataProcessingProcess
             ip.parse(owner, varargin{:});
             outputDir = ip.Results.outputDir;
 
-            funParams.OutputDirectory   = [outputDir filesep 'FilopodiaSampling'];
+            funParams.OutputDirectory   = [outputDir filesep 'FilopodiaForcePackage' filesep 'FilopodiaSampling'];
             funParams.ChannelIndex      = 1;
             funParams.WindowProcessIndex = [];     % []->find FilopodiaWindowingProcess
             % cross-package traction source (TFMPackage)

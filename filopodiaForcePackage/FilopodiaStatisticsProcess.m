@@ -52,7 +52,7 @@ classdef FilopodiaStatisticsProcess < DataProcessingProcess
             ip.parse(owner, varargin{:});
             outputDir = ip.Results.outputDir;
 
-            funParams.OutputDirectory = [outputDir filesep 'FilopodiaStatistics'];
+            funParams.OutputDirectory = [outputDir filesep 'FilopodiaForcePackage' filesep 'FilopodiaStatistics'];
             funParams.ChannelIndex    = 1;
             funParams.LengthBins      = [];
             funParams.VelocityBins    = [];

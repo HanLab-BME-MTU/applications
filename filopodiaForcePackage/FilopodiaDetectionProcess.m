@@ -61,7 +61,7 @@ classdef FilopodiaDetectionProcess < DetectionProcess
             ip.parse(owner, varargin{:});
             outputDir = ip.Results.outputDir;
 
-            funParams.OutputDirectory = [outputDir filesep 'FilopodiaDetection'];
+            funParams.OutputDirectory = [outputDir filesep 'FilopodiaForcePackage' filesep 'FilopodiaDetection'];
             funParams.ChannelIndex    = 1;          % talin-GFP
             funParams.SegProcessIndex = [];         % []->find FilopodiaSegmentationProcess
             % pointSourceDetection

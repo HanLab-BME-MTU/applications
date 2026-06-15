@@ -53,7 +53,7 @@ classdef FilopodiaTrackingProcess < DataProcessingProcess
             ip.parse(owner, varargin{:});
             outputDir = ip.Results.outputDir;
 
-            funParams.OutputDirectory = [outputDir filesep 'FilopodiaTracking'];
+            funParams.OutputDirectory = [outputDir filesep 'FilopodiaForcePackage' filesep 'FilopodiaTracking'];
             funParams.ChannelIndex    = 1;
             funParams.DetProcessIndex = [];      % []->find FilopodiaDetectionProcess
             funParams.MaxLinkDist     = 10;      % px / frame (tip)
