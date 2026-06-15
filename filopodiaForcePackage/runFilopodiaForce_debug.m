@@ -74,14 +74,24 @@ else
     pp2.PSFsigma = 2.3;          % TUNE: ~ (PSF FWHM in px)/2.355
 end
 pp2.Alpha             = 0.05;
-pp2.TipMaxDistFromBody = 50;     % TUNE: max filopodium reach (px) from body
+pp2.TipMaxDistFromBody = 60;     % TUNE: max filopodium reach (px) from body
 % pp2.BaseSearchBand     = 5;      % TUNE: px band at body edge counted as base
 pp2.BaseSearchBand   = 12;       % px, base expansion
-pp2.MaxTipBaseDist     = 100;    % TUNE: max plausible filo length (px)
+pp2.MaxTipBaseDist     = 80;    % TUNE: max plausible filo length (px)
 pp2.OrientTolerance    = 30;     % TUNE: deg; raise if traces miss bends
-pp2.OrientLambda       = 2;      % TUNE: raise to force ridge-following
+pp2.OrientLambda       = 3;      % TUNE: raise to force ridge-following
 pp2.MinFiloLength      = 5;      % px
 pp2.ProcessFrames      = [];     % set to tFrame for a fast single-frame test
+pp2.CarveDistalFrac  = 0.8;   % fraction to block distal portion. 1.0 will block even base
+
+pp2.ShaftAbsorbRadius  = 3;     % shaft middle absortiopn radius (if increased, it will be more aggressive)
+
+pp2.TipScoreWeightDist = 0.5;   % dist vs amplitude even consideration
+pp2.TipScoreWeightAmp  = 0.5;
+pp2.TipScoreMinPrctile = 50;    % low 50% removed; If increased, it will be more strict
+pp2.TipMinAmplitude    = 0;     % absolute amplitude floor (0=off); kills isolated dim noise
+pp2.TipRidgeBand = 1;     % If inreased(3~4), more generous. If decreased (to 1), more strict.
+
 detProc.setPara(pp2);
 
 tic; detProc.run(); toc
@@ -93,8 +103,12 @@ fprintf('Frame %d: %d filopodia detected\n', tFrame, numel(fi));
 
 img = double(MD.channels_(iChanTal).loadImage(tFrame));
 figure('Name','P2 QC','Color','w');
-imagesc(img); axis image off; colormap(gray); hold on;
-clim([100 600])
+
+subplot(1,2,2); imshow(res.*~bodyMask,[]); axis image off; colormap(gca,hot);
+
+subplot(1,2,1);
+imshow(img); axis image off; colormap(gray); hold on;
+clim([100 500])
 
 for k = 1:numel(fi)
     cl = fi(k).centerline;
@@ -106,14 +120,127 @@ title(sprintf('tip(+) base(o) shaft(-) | n=%d', numel(fi)));
 hold off;
 
 % length distribution (px -> nm)
-if ~isempty(fi)
-    L = [fi.length] * MD.pixelSize_;
-    figure('Name','P2 lengths','Color','w');
-    histogram(L); xlabel('filopodium length (nm)'); ylabel('count');
-    title(sprintf('median = %.0f nm', median(L)));
-end
+% if ~isempty(fi)
+%     L = [fi.length] * MD.pixelSize_;
+%     figure('Name','P2 lengths','Color','w');
+%     histogram(L); xlabel('filopodium length (nm)'); ylabel('count');
+%     title(sprintf('median = %.0f nm', median(L)));
+% end
 
 %% ===================== diagnostics for tuning =====================
 % If too few/many tips: adjust pp2.PSFsigma, pp2.Alpha, pp2.TipMaxDistFromBody.
 % If shafts cut corners or wander: raise OrientLambda / lower OrientTolerance.
 % If bases land mid-shaft: lower BaseSearchBand. Re-run the PROCESS 2 cell.
+
+%% ===================== QC: WHY are tips detected? (ridge gate audit) =====================
+% ? ?? tip? shaftMask(strong ridge) ?? ??? ???? ????.
+tFrame = 1;
+iChanTal = 1;
+
+% P1, P2 ?? ??
+segDir = MD.processes_{MD.getProcessIndex('FilopodiaSegmentationProcess',1,0)}.funParams_.OutputDirectory;
+seg = load(fullfile(segDir, sprintf('filoSeg_frame_%04d.mat', tFrame)));
+detProc = MD.processes_{MD.getProcessIndex('FilopodiaDetectionProcess',1,0)};
+filoInfo = detProc.loadChannelOutput(iChanTal, 'output','filoInfo');
+fi = filoInfo{tFrame};
+
+img   = double(MD.channels_(iChanTal).loadImage(tFrame));
+res   = seg.res;  shaft = seg.shaftMask>0;  body = seg.bodyMask>0;
+[H,W] = size(res);
+
+% ??? ?? ridge ???? ???? ???
+p = detProc.funParams_;
+ridge = imdilate(shaft, strel('disk', round(p.TipRidgeBand)));
+
+% ? tip??: ridge ???, ? ?? res ?, ? ?? raw ??
+nF = numel(fi);
+tipRes = zeros(1,nF); tipOnRidge = false(1,nF); tipInt = zeros(1,nF);
+for k = 1:nF
+    c = round(fi(k).tipPos);                 % [x y]
+    cx = min(max(c(1),1),W); cy = min(max(c(2),1),H);
+    tipRes(k)     = res(cy,cx);
+    tipOnRidge(k) = ridge(cy,cx);
+    tipInt(k)     = img(cy,cx);
+end
+
+%% Figure 1: tip? ridge ?/??? ? ?? + shaftMask ??
+figure('Name','QC tip audit','Color','w','Position',[50 50 1400 700]);
+
+subplot(1,2,1);
+imagesc(img); axis image off; colormap(gca,gray); hold on;
+% shaftMask? ??? ????
+sm = imdilate(shaft, strel('disk',round(p.TipRidgeBand)));
+h = imagesc(cat(3, zeros(H,W), 0.4*ones(H,W), ones(H,W)));
+set(h,'AlphaData', 0.25*double(sm));
+visboundaries(body,'Color','c','LineWidth',0.5);
+for k = 1:nF
+    cl = fi(k).centerline;
+    plot(cl(:,1),cl(:,2),'-','Color',[1 1 0 0.5],'LineWidth',0.8);
+    col = 'rg'; col = col(tipOnRidge(k)+1);  % off-ridge=red, on-ridge=green
+    plot(fi(k).tipPos(1),fi(k).tipPos(2),'+','Color',col,'MarkerSize',9,'LineWidth',1.5);
+end
+title(sprintf('green=on ridge (%d), red=off ridge (%d) | blue=shaftMask(+band)', ...
+    sum(tipOnRidge), sum(~tipOnRidge)));
+
+% raw ?? shaftMask ??? (ridge? ???? ???)
+subplot(1,2,2);
+imagesc(img); axis image off; colormap(gca,gray); hold on;
+visboundaries(shaft,'Color',[0.2 0.6 1],'LineWidth',0.4);
+visboundaries(body,'Color','c','LineWidth',0.5);
+plot([fi.tipPos]*0+nan, nan); % noop
+for k = 1:nF
+    plot(fi(k).tipPos(1),fi(k).tipPos(2),'r+','MarkerSize',8,'LineWidth',1.2);
+end
+title('shaftMask outline (blue) on raw ? are these real ridges?');
+
+%% Figure 2: tip ?? ?? ?? (? ????)
+figure('Name','QC tip properties','Color','w','Position',[60 60 1200 380]);
+subplot(1,3,1); histogram(tipRes); xlabel('res at tip'); ylabel('count');
+title(sprintf('res at tip (median %.1f)', median(tipRes)));
+subplot(1,3,2); histogram(tipInt); xlabel('raw intensity at tip');
+title('raw talin intensity at tip');
+subplot(1,3,3);
+bar([sum(tipOnRidge) sum(~tipOnRidge)]); set(gca,'XTickLabel',{'on ridge','off ridge'});
+title('ridge gate outcome'); ylabel('count');
+
+%% ?? ??
+fprintf('\n=== tip audit (frame %d) ===\n', tFrame);
+fprintf('total tips: %d | on-ridge: %d | off-ridge: %d\n', nF, sum(tipOnRidge), sum(~tipOnRidge));
+fprintf('res at tip: min %.1f  median %.1f  max %.1f\n', min(tipRes), median(tipRes), max(tipRes));
+fprintf('(shaftMask covers %.1f%% of image; +band %.1f%%)\n', ...
+    100*mean(shaft(:)), 100*mean(sm(:)));
+%% P3 running
+iP3 = MD.getProcessIndex('FilopodiaTrackingProcess',1,0);
+if isempty(iP3), MD.addProcess(FilopodiaTrackingProcess(MD)); 
+   iP3 = MD.getProcessIndex('FilopodiaTrackingProcess',1,0); end
+trkProc = MD.processes_{iP3};
+pp3 = trkProc.funParams_;
+pp3.MaxLinkDist   = 10;   % tip? ???? ???? ?? px (protrusion ??? ??)
+pp3.MaxGapFrames  = 2;    % ?? ??? ? ??
+pp3.MinTrackLength = 3;   % 3??? ?? ?? (false ??)
+trkProc.setPara(pp3);
+trkProc.run();
+
+%% P3 QC
+trkProc = MD.processes_{MD.getProcessIndex('FilopodiaTrackingProcess',1,0)};
+ft = trkProc.loadChannelOutput(1,'output','filoTracks');
+
+%% 1) track ??(lifetime) ?? ? 3? ????, ?? ?? ? ??
+lifeF = [ft.lifetime];
+figure; histogram(lifeF); xlabel('track lifetime (frames)'); ylabel('count');
+title(sprintf('median %d, max %d frames | n=%d tracks', median(lifeF), max(lifeF), numel(ft)));
+
+%% 2) ?? overlay ? ???? track? ?? filopodia ????
+tF = 1; img = double(MD.channels_(1).loadImage(tF));
+figure; imshow(img,[100 500]); hold on;
+for i=1:numel(ft)
+    j = find(ft(i).frames==tF,1);
+    if isempty(j), continue; end
+    plot(ft(i).tipTrack(j,1), ft(i).tipTrack(j,2),'r+','MarkerSize',8,'LineWidth',1.2);
+end
+title(sprintf('tips of tracks present at frame %d', tF));
+
+%% 3) velocity ?? sanity ? ?? ? ?? ?? linking ??
+allV = abs([ft.velocity_nmps]);
+fprintf('|velocity|: median %.0f nm/s, 95pct %.0f nm/s, max %.0f nm/s\n', ...
+    median(allV), prctile(allV,95), max(allV));

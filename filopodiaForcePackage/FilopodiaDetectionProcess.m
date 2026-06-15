@@ -69,15 +69,21 @@ classdef FilopodiaDetectionProcess < DetectionProcess
             funParams.Alpha           = 0.05;
             funParams.ConfRadius      = [];         % default 2*sigma
             funParams.WindowSize      = [];         % default 4*sigma
+            % detection mode
+            funParams.DetectMode = 'auto';          % 'auto' (multi-frame->all, 1-frame->tip) | 'all' | 'tip'
+            funParams.BaseInsideBand = 4;           % px inside body edge still counted as a (base) adhesion ('all' mode)
             % tip vs base classification
-            funParams.TipMaxDistFromBody = 50;      % px outside body -> tip candidate
+            funParams.TipMaxDistFromBody = 130;     % px outside body -> tip/adhesion candidate gate
             funParams.BaseSearchBand     = 5;       % px band around body edge -> base
+            funParams.TipRidgeBand       = -1;      % px around shaftMask for ridge gate (<0 = off; cleanup is temporal in P3)
             % shaft tracing
-            funParams.MaxTipBaseDist  = 100;        % px, max plausible length
+            funParams.MaxTipBaseDist  = 160;        % px, max trace length (~1.2 x TipMaxDistFromBody)
             funParams.OrientTolerance = 30;         % deg
-            funParams.OrientLambda    = 2;          % orientation penalty weight
+            funParams.OrientLambda    = 3;          % orientation penalty; higher = straighter
             funParams.PathCostFloor   = 1e-3;
             funParams.MinFiloLength   = 5;          % px
+            funParams.ShaftAbsorbRadius = 3;        % px; carve width around traced shaft
+            funParams.CarveDistalFrac   = 0.8;      % block distal 80% of each shaft
             funParams.ProcessFrames   = [];
             funParams.BatchMode       = false;
         end
