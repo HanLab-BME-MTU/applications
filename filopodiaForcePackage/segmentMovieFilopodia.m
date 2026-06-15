@@ -30,19 +30,32 @@ proc.setOutFilePaths(outFilePaths);
 for t = frames
     img = double(movieData.channels_(iChan).loadImage(t));
 
-    % --- cell body ---
+    % --- cell body: blurred threshold, then despike + smooth ---
+    % Filopodia are recovered separately by the steerable filter, so the body
+    % must exclude them and end smooth/rounded. Opening removes the thin
+    % filopodia roots; closing rounds the boundary and fills the notches
+    % between them. Blur first so noise does not roughen the edge.
+    imgB = imgaussfilt(img, p.GaussianBlurSigma);
     switch lower(num2str(p.BodyThreshold))
-        case 'otsu',  level = thresholdOtsu(img);
-        case 'rosin', level = thresholdRosin(img);
+        case 'otsu',  level = thresholdOtsu(imgB);
+        case 'rosin', level = thresholdRosin(imgB);
         otherwise,    level = p.BodyThreshold;   % numeric
     end
-    bodyMask = img > level;
-    if p.BodyClosingRadius > 0
-        bodyMask = imclose(bodyMask, strel('disk', p.BodyClosingRadius));
+    bodyMask = imgB > level;
+    bodyMask = imfill(bodyMask, 'holes');
+    if any(bodyMask(:))
+        bodyMask = bwareafilt(bodyMask, 1);                 % keep largest object
     end
+    if p.BodyOpenRadius > 0
+        bodyMask = imopen(bodyMask, strel('disk', p.BodyOpenRadius));    % despike
+    end
+    if p.BodyClosingRadius > 0
+        bodyMask = imclose(bodyMask, strel('disk', p.BodyClosingRadius)); % round/smooth
+    end
+    bodyMask = imfill(bodyMask, 'holes');
     bodyMask = bwareaopen(bodyMask, p.BodyMinArea);
 
-    % --- steerable ridge maps ---
+    % --- steerable ridge maps (on the original, unblurred image) ---
     [res, theta, nms, scaleMap] = multiscaleSteerableDetector(img, ...
         p.SteerableOrder, p.SigmaArray);
 

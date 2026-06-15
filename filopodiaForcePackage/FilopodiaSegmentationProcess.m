@@ -61,9 +61,11 @@ classdef FilopodiaSegmentationProcess < ImageAnalysisProcess
             funParams.ChannelIndex      = 1;
             funParams.SteerableOrder    = 4;
             funParams.SigmaArray        = [1 2 4];
-            funParams.BodyThreshold     = 'rosin';
+            funParams.BodyThreshold     = 'otsu';
+            funParams.GaussianBlurSigma = 2;     % px; blur before body threshold
             funParams.BodyMinArea       = 500;
-            funParams.BodyClosingRadius = 3;
+            funParams.BodyOpenRadius    = 8;     % px; opening removes filopodia roots (despike)
+            funParams.BodyClosingRadius = 8;     % px; closing rounds/smooths the body edge
             funParams.HysteresisHigh    = [];
             funParams.HysteresisLow     = [];
             funParams.ProcessFrames     = [];

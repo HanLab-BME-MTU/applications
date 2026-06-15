@@ -5,7 +5,7 @@
 % Sangyoon J. Han / 2026
 
 %% ===================== CONFIG =====================
-mdPath   = '';            % e.g. '/path/to/Cell04/movieData.mat'; '' -> use MD in workspace
+mdPath   = '/mnt/nas/Collaborations/Celine_San_Diego/20260411/Soft-KO/KO_HELA_TALIN_G_BEAD_R_soft_40_nm_P_03_Airyscan_Processing_Processed_2_P3/KO HELA TALIN-G BEAD-R-soft 40 nm_P-03-Airyscan Processing-Processed 2.mat';            % e.g. '/path/to/Cell04/movieData.mat'; '' -> use MD in workspace
 iChanTal = 1;             % talin-GFP channel index
 tFrame   = 1;             % frame to inspect in QC
 
@@ -30,23 +30,24 @@ pp = segProc.funParams_;
 pp.ChannelIndex      = iChanTal;
 pp.SteerableOrder    = 4;          % even order -> ridge detector
 pp.SigmaArray        = [1 2];      % px; tune to talin PSF
-pp.BodyThreshold     = 'rosin';    % 'rosin' | 'otsu' | numeric
+pp.BodyThreshold     = 'otsu';    % 'rosin' | 'otsu' | numeric
 pp.BodyClosingRadius = 12;         % px, smooths body boundary
 pp.ProcessFrames     = tFrame;     % set [] for all frames
+pp.GaussianBlurSigma = 2; 
 segProc.setPara(pp);
 
 tic; segProc.run(); toc
 
-% --- P1 QC: body mask + ridge response ---
+%% --- P1 QC: body mask + ridge response ---
 img      = double(MD.channels_(iChanTal).loadImage(tFrame));
 bodyMask = segProc.loadChannelOutput(iChanTal, tFrame, 'output','bodyMask');
 res      = segProc.loadChannelOutput(iChanTal, tFrame, 'output','res');
 
 figure('Name','P1 QC','Color','w');
-subplot(1,3,1); imagesc(img); axis image off; colormap(gca,gray);
+subplot(1,3,1); imshow(img,[100 500]); axis image off; colormap(gca,gray);
 hold on; visboundaries(bodyMask,'Color','c','LineWidth',0.5); hold off;
 title('talin + body boundary');
-subplot(1,3,2); imagesc(res); axis image off; colormap(gca,hot);
+subplot(1,3,2); imshow(res,[]); colormap(gca,hot);
 title('steerable response (res)');
 subplot(1,3,3); imagesc(res .* ~bodyMask); axis image off; colormap(gca,hot);
 title('res outside body (shaft signal)');
@@ -68,8 +69,8 @@ else
     pp2.PSFsigma = 1.6;     % TUNE: ~(PSF FWHM in px)/2.355
 end
 pp2.Alpha             = 0.05;  % TUNE: lower -> fewer detections
-pp2.TipMaxDistFromBody = 130;  % TUNE: max filopodium reach (px)
-pp2.MaxTipBaseDist     = 160;  % keep ~1.2 x TipMaxDistFromBody
+pp2.TipMaxDistFromBody = 70;  % TUNE: max filopodium reach (px)
+pp2.MaxTipBaseDist     = 90;  % keep ~1.2 x TipMaxDistFromBody
 pp2.OrientLambda       = 3;    % TUNE: higher -> straighter shafts
 pp2.OrientTolerance    = 30;
 pp2.TipRidgeBand       = 2;    % TUNE: px around shaftMask for ridge gate
