@@ -54,17 +54,13 @@ classdef FilopodiaSamplingProcess < DataProcessingProcess
 
             funParams.OutputDirectory   = [outputDir filesep 'FilopodiaForcePackage' filesep 'FilopodiaSampling'];
             funParams.ChannelIndex      = 1;
-            funParams.WindowProcessIndex = [];     % []->find FilopodiaWindowingProcess
+            funParams.ClassProcessIndex = [];     % []->find FilopodiaClassificationProcess (P4)
             % cross-package traction source (TFMPackage)
             funParams.ForcePackageName  = 'TFMPackage';
             funParams.ForceProcessName  = 'ForceFieldCalculationProcess';
-            funParams.ForceOutput       = 'tMapUnshifted';
-            funParams.ProjectAxial      = true;
-            % green<->red channel registration
-            funParams.ApplyChannelShift = true;
-            funParams.ChannelShift      = [0 0];   % [dx dy] px
-            % intensity
-            funParams.IntensityChannel  = 1;       % talin-GFP
+            % sampling
+            funParams.ShaftSampleStep   = 3;       % px; arc-length step along shaft
+            funParams.SampleRadius      = 1;       % px; local averaging radius for talin
             funParams.SampleStat        = 'mean';  % 'mean'|'median'|'max'
             funParams.BatchMode         = false;
         end

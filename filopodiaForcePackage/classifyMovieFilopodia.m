@@ -55,12 +55,12 @@ proc.setOutFilePaths(outFilePaths);
 
 %% preload P1 maps
 nF = movieData.nFrames_;
-bodyByFrame = cell(1,nF); thetaByFrame = cell(1,nF); distByFrame = cell(1,nF);
+bodyByFrame = cell(1,nF); thetaByFrame = cell(1,nF); distByFrame = cell(1,nF); resByFrame = cell(1,nF);
 for t = 1:nF
     fn = fullfile(segOutDir, sprintf('filoSeg_frame_%04d.mat', t));
     if exist(fn,'file')~=2, continue; end
-    s = load(fn, 'bodyMask','theta');
-    bodyByFrame{t}=s.bodyMask; thetaByFrame{t}=s.theta; distByFrame{t}=bwdist(s.bodyMask);
+    s = load(fn, 'bodyMask','theta','res');
+    bodyByFrame{t}=s.bodyMask; thetaByFrame{t}=s.theta; distByFrame{t}=bwdist(s.bodyMask); resByFrame{t}=s.res;
 end
 
 %% (A) per-track features -> tip eligibility (WELL TRACKED)
@@ -100,7 +100,6 @@ for i = 1:nTr
 end
 
 %% (B) per-frame assembly: tips drive geometry; nearby adhesions -> shaft
-shaftBand = getfielddef(p,'ShaftBand',4);    % px; perpendicular distance to tip->base line
 posByFrame.tip   = cell(1,nF);
 posByFrame.base  = cell(1,nF);
 posByFrame.shaft = cell(1,nF);    % shaft adhesions
@@ -120,39 +119,35 @@ for t = 1:nF
     roleByAdh{t} = repmat({'none'}, 1, n);
 
     elig = find(arrayfun(@(k) trkOfAdh{t}(k)>0 && tipEligible(trkOfAdh{t}(k)), 1:n));
-    [~, ord] = sort(distA(elig), 'descend');   % most distal first
-    elig = elig(ord);
-    claimed = false(1,n);
+    if isempty(elig), progressText(t/nF,'Filopodia assembly'); continue; end
 
-    for kk = elig
-        if claimed(kk), continue; end          % already a shaft of a more distal tip
-        [shaft, base, ~, ~, reached] = straightShaftToBody(A(kk,1), A(kk,2), A, ...
-            thetaByFrame{t}, bodyByFrame{t}, distByFrame{t}, p);
-        if ~reached, continue; end
-        % assign other adhesions on the tip->base segment as shaft adhesions
-        seg = base - A(kk,:); Lseg = hypot(seg(1),seg(2));
-        if Lseg < 1, continue; end
-        u = seg / Lseg;                         % unit tip->base
-        rel = A - A(kk,:);
-        proj = rel(:,1)*u(1) + rel(:,2)*u(2);
-        perp = abs(-rel(:,1)*u(2) + rel(:,2)*u(1));
-        onLine = (perp < shaftBand) & (proj > 1) & (proj < Lseg) & (distA(:) < distA(kk)) & ~claimed(:);
-        shIdx = find(onLine);
-        claimed(shIdx) = true; claimed(kk) = true;
+    % joint assembly: confidence-ordered greedy with neighbor prior + no-overlap
+    fil = assembleFilopodiaFrame(elig(:), A, distA(:), thetaByFrame{t}, ...
+        bodyByFrame{t}, distByFrame{t}, resByFrame{t}, p);
 
+    % map assembled filopodia back to adhesions/tracks
+    for f = 1:numel(fil)
+        tipxy = fil(f).tipPos;
+        % find the adhesion index kk that equals this tip
+        [~, kk] = min((A(:,1)-tipxy(1)).^2 + (A(:,2)-tipxy(2)).^2);
         roleByAdh{t}{kk} = 'tip';
-        for q = shIdx.', roleByAdh{t}{q} = 'shaft'; end
-        posByFrame.tip{t}(end+1,:)  = A(kk,:);
-        posByFrame.base{t}(end+1,:) = base;
+        shIdx = fil(f).shaftIdx;
+        for q = shIdx(:)', roleByAdh{t}{q} = 'shaft'; end
+        posByFrame.tip{t}(end+1,:)  = tipxy;
+        posByFrame.base{t}(end+1,:) = fil(f).base;
         if ~isempty(shIdx), posByFrame.shaft{t} = [posByFrame.shaft{t}; A(shIdx,:)]; end
-        shaftByFrame{t} = [shaftByFrame{t}; shaft; nan(1,2)];
+        nstep = max(2, round(fil(f).len));
+        ss = linspace(0, fil(f).len, nstep)';
+        line = [tipxy(1)+ss*cos(fil(f).ang), tipxy(2)+ss*sin(fil(f).ang)];
+        shaftByFrame{t} = [shaftByFrame{t}; line; nan(1,2)];
 
-        % accumulate for this tip's track
         it = trkOfAdh{t}(kk);
-        tipFrames{it}(end+1) = t;
-        tipLen{it}(end+1)    = Lseg;
-        tipPos{it}(end+1,:)  = A(kk,:);
-        tipBase{it}(end+1,:) = base;
+        if it>0
+            tipFrames{it}(end+1) = t;
+            tipLen{it}(end+1)    = fil(f).len;
+            tipPos{it}(end+1,:)  = tipxy;
+            tipBase{it}(end+1,:) = fil(f).base;
+        end
     end
     progressText(t/nF,'Filopodia assembly');
 end

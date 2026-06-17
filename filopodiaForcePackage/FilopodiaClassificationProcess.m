@@ -122,8 +122,15 @@ classdef FilopodiaClassificationProcess < DataProcessingProcess
             funParams.MinLinearFrac   = 0.85;   % trajectory variance fraction on principal axis (linear)
             funParams.MinTrajSpread   = 3;      % px; below this a track is "stationary" (linearity n/a)
             funParams.MinTipDist      = 6;      % px; tip must reach at least this far from body
-            % --- shaft assignment ---
+            % --- shaft assignment & joint assembly ---
             funParams.ShaftBand       = 4;      % px; adhesion within this of tip->base line = shaft adhesion
+            funParams.WShaft          = 0.5;    % reward for passing many shaft adhesions (deep base)
+            funParams.WLen            = 0.25;   % small length penalty (smaller -> deeper base)
+            funParams.WPrior          = 0.6;    % neighbor-direction consistency / angle continuity
+            funParams.WOverlap        = 0.8;    % penalty if shaft crosses an already-fixed shaft
+            funParams.WBaseSep        = 0.7;    % penalty if base is near an already-fixed base
+            funParams.MinBaseSep      = 8;      % px; minimum spacing between distinct filopodium bases
+            funParams.NeighRadius     = 60;     % px; neighborhood for direction prior
             % --- straight shaft direction (see straightShaftToBody) ---
             funParams.MaxShaftLen     = 160;    % px; max shaft length (tip reach)
             funParams.SweepRange      = 35;     % deg; direction sweep around ridge/body-ward
