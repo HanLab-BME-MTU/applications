@@ -1,13 +1,12 @@
 %% runFilopodiaForce_debug.m
-% Interactive driver to run and debug Process 1 (segmentation) and Process 2
-% (detection) on one MovieData, with QC overlays for tuning.
+% Interactive driver to run and debug the FilopodiaForcePackage pipeline.
 % Run cell by cell (Ctrl+Enter). Edit the CONFIG block first.
 % Sangyoon J. Han / 2026
 
 %% ===================== CONFIG =====================
 mdPath   = '/mnt/nas/Collaborations/Celine_San_Diego/20260411/Soft-KO/KO_HELA_TALIN_G_BEAD_R_soft_40_nm_P_03_Airyscan_Processing_Processed_2_P3/KO HELA TALIN-G BEAD-R-soft 40 nm_P-03-Airyscan Processing-Processed 2.mat';
 iChanTal = 1;             % talin-GFP channel index
-tFrame   = [];             % frame to inspect in QC
+tFrame   = [];             % [] for all frames; set to e.g. 5 for single-frame QC
 
 if isempty(mdPath)
     assert(exist('MD','var')==1, 'Load MD first or set mdPath.');
@@ -19,8 +18,6 @@ fprintf('Movie: %d channels, %d frames, pixelSize=%.4g nm, dt=%.4g s\n', ...
     numel(MD.channels_), MD.nFrames_, MD.pixelSize_, MD.timeInterval_);
 
 %% ===================== PACKAGE REGISTRATION =====================
-% Register FilopodiaForcePackage on MD if not already present.
-% Only needs to run once; persists after MD.save().
 pkg = setupFilopodiaForcePackage(MD);
 
 %% ===================== PROCESS 1: SEGMENTATION =====================
@@ -33,33 +30,38 @@ segProc = MD.processes_{iP1};
 
 pp = segProc.funParams_;
 pp.ChannelIndex      = iChanTal;
-pp.SteerableOrder    = 4;      % even order -> ridge detector
-pp.SigmaArray        = [1 2];  % px; tune to talin PSF
-pp.BodyThreshold     = 'otsu'; % 'rosin' | 'otsu' | numeric
-pp.GaussianBlurSigma = 2;      % px; blur before body threshold (reduces noise)
-pp.BodyOpenRadius    = 8;      % px; opening removes filopodia roots (despike)
-pp.BodyClosingRadius = 8;      % px; closing rounds/smooths the body edge
-pp.ProcessFrames     = tFrame; % set [] for all frames
+pp.SteerableOrder    = 4;
+pp.SigmaArray        = [1 2];
+pp.BodyThreshold     = 'otsu';
+pp.GaussianBlurSigma = 2;
+pp.BodyOpenRadius    = 8;
+pp.BodyClosingRadius = 8;
+pp.ProcessFrames     = tFrame;
 segProc.setPara(pp);
 
 tic; segProc.run(); toc
 
 %% --- P1 QC: body mask + ridge response ---
-tFrameToInspect = 3;
-img  = double(MD.channels_(iChanTal).loadImage(tFrameToInspect));
+tQC = 5;   % frame to inspect (change as needed)
+img  = double(MD.channels_(iChanTal).loadImage(tQC));
 segDir = segProc.funParams_.OutputDirectory;
-seg  = load(fullfile(segDir, sprintf('filoSeg_frame_%04d.mat', tFrameToInspect)));
-bodyMask = seg.bodyMask;
-res      = seg.res;
+seg  = load(fullfile(segDir, sprintf('filoSeg_frame_%04d.mat', tQC)));
 
 figure('Name','P1 QC','Color','w');
-subplot(1,3,1); imshow(img,[100 500]); colormap(gca,gray); hold on;
-visboundaries(bodyMask,'Color','c','LineWidth',0.5); hold off;
+subplot(1,3,1); imshow(img,[prctile(img(:),1) prctile(img(:),99)]); colormap(gca,gray); hold on;
+visboundaries(seg.bodyMask,'Color','c','LineWidth',0.5); hold off;
 title('talin + body boundary');
-subplot(1,3,2); imshow(res,[]); colormap(gca,hot);
+subplot(1,3,2); imshow(seg.res,[]); colormap(gca,hot);
 title('steerable response (res)');
-subplot(1,3,3); imagesc(res .* ~bodyMask); axis image off; colormap(gca,hot);
+subplot(1,3,3); imagesc(seg.res .* ~seg.bodyMask); axis image off; colormap(gca,hot);
 title('res outside body (shaft signal)');
+
+%% --- P1 QC: shaftMask + body outline ---
+figure('Name','P1 QC: shaft vs body','Color','w');
+imshow(img,[prctile(img(:),1) prctile(img(:),99)]); colormap(gca,gray); hold on;
+visboundaries(seg.bodyMask,'Color','c','LineWidth',0.5);
+visboundaries(seg.shaftMask & ~seg.bodyMask,'Color',[0.2 0.6 1],'LineWidth',0.3);
+title('body (cyan) + shaftMask outside body (blue)');
 
 %% ===================== PROCESS 2: DETECTION =====================
 iP2 = MD.getProcessIndex('FilopodiaDetectionProcess',1,0);
@@ -69,105 +71,60 @@ if isempty(iP2)
 end
 detProc = MD.processes_{iP2};
 
-% merge any newly added default fields into existing params (e.g. UseRidgeTips)
 defP2 = FilopodiaDetectionProcess.getDefaultParams(MD);
 pp2 = detProc.funParams_;
 fn = fieldnames(defP2);
 for ii = 1:numel(fn)
     if ~isfield(pp2, fn{ii}), pp2.(fn{ii}) = defP2.(fn{ii}); end
 end
-pp2.ChannelIndex = iChanTal;
-if ~isempty(MD.channels_(iChanTal).psfSigma_)
-    pp2.PSFsigma = MD.channels_(iChanTal).psfSigma_;
-else
-    pp2.PSFsigma = 1.6;        % TUNE: ~(PSF FWHM in px)/2.355
-end
-pp2.Alpha              = 0.05; % TUNE: lower -> fewer detections
-pp2.TipMaxDistFromBody = 70;   % TUNE: max filopodium reach (px)
-pp2.MaxTipBaseDist     = 90;   % keep ~1.2 x TipMaxDistFromBody
-pp2.BaseInsideBand     = 4;    % px inside body edge to include base adhesions
-pp2.OrientLambda       = 3;    % TUNE: higher -> straighter shafts (tip mode only)
-pp2.OrientTolerance    = 30;
-pp2.TipRidgeBand       = -1;   % ridge gate (<0 = off)
-pp2.ShaftAbsorbRadius  = 3;
-pp2.CarveDistalFrac    = 0.8;
-pp2.DetectMode         = 'auto'; % 'auto' -> 'all' for multi-frame, 'tip' for 1-frame
+pp2.ChannelIndex       = iChanTal;
+pp2.PSFsigma           = 2.6;  % TIP scale (tips are larger than the PSF)
+pp2.Alpha              = 0.05;
+pp2.TipMaxDistFromBody = 100;
+pp2.MaxTipBaseDist     = 120;
+pp2.BaseInsideBand     = 4;
+pp2.DetectMode         = 'auto';
 pp2.ProcessFrames      = tFrame;
 detProc.setPara(pp2);
 
 tic; detProc.run(); toc
 
-%% --- P2 QC: overlay detections on image ---
+%% --- P2 QC: adhesion overlay on image ---
 detFile = fullfile(detProc.funParams_.OutputDirectory, 'filoDetection.mat');
 S = load(detFile);
 detectMode = S.detectMode;
-fprintf('Frame %d: DetectMode = %s\n', tFrame, detectMode);
+fprintf('DetectMode = %s\n', detectMode);
 
-img = double(MD.channels_(iChanTal).loadImage(tFrameToInspect));
-figure('Name','P2 QC','Color','w');
+img = double(MD.channels_(iChanTal).loadImage(tQC));
+figure('Name','P2 QC: adhesions','Color','w');
 
 if strcmp(detectMode, 'all')
-    % 'all' mode: show all detected adhesion puncta, colored by signed distance
-    % to body edge (positive = outside, negative = inside).
-    adh = S.adhesionInfo{tFrameToInspect};
-    fprintf('Frame %d: %d adhesions detected (all mode)\n', tFrame, numel(adh));
-
+    adh = S.adhesionInfo{tQC};
+    fprintf('Frame %d: %d adhesions detected\n', tQC, numel(adh));
     if ~isempty(adh)
-        apos  = cat(1, adh.pos);          % [x y]
-        adist = [adh.dist];               % signed dist: + outside, - inside
+        apos = cat(1, adh.pos); adist = [adh.dist];
         imagesc(img); axis image off; colormap(gray); hold on;
-        visboundaries(bodyMask,'Color','c','LineWidth',0.5);
-        % color by distance: warm = distal (tip candidates), cool = proximal/inside
-        sc = scatter(apos(:,1), apos(:,2), 20, adist, 'filled');
+        visboundaries(seg.bodyMask,'Color','c','LineWidth',0.5);
+        scatter(apos(:,1), apos(:,2), 20, adist, 'filled');
         colormap(gca, jet); cb = colorbar; ylabel(cb,'signed dist to edge (px)');
         caxis([-pp2.BaseInsideBand, pp2.TipMaxDistFromBody]);
-        title(sprintf('all adhesions | n=%d | warm=distal, cool=inside body', numel(adh)));
-    else
-        imagesc(img); axis image off; colormap(gray);
-        title('no adhesions detected');
-    end
-
-else
-    % 'tip' mode: show filopodia (tip/base/shaft) -- same as before.
-    fi = S.filoInfo{tFrame};
-    fprintf('Frame %d: %d filopodia detected (tip mode)\n', tFrame, numel(fi));
-
-    imagesc(img); axis image off; colormap(gray); hold on;
-    for k = 1:numel(fi)
-        cl = fi(k).centerline;
-        plot(cl(:,1), cl(:,2), 'y-', 'LineWidth', 1.2);
-        plot(fi(k).basePos(1), fi(k).basePos(2), 'co', 'MarkerSize',7,'LineWidth',1.5);
-        plot(fi(k).tipPos(1),  fi(k).tipPos(2),  'r+', 'MarkerSize',9,'LineWidth',1.5);
-    end
-    title(sprintf('tip(+) base(o) shaft(-) | n=%d', numel(fi)));
-
-    % Length distribution (px -> nm)
-    if ~isempty(fi)
-        L = [fi.length] * MD.pixelSize_;
-        figure('Name','P2 lengths','Color','w');
-        histogram(L); xlabel('filopodium length (nm)'); ylabel('count');
-        title(sprintf('median = %.0f nm', median(L)));
+        title(sprintf('all adhesions | n=%d | warm=distal', numel(adh)));
     end
 end
 
-%% --- P2 QC: adhesion distance distribution ('all' mode) ---
-if strcmp(detectMode, 'all') && ~isempty(adh)
-    adist = [adh.dist];
-    ares  = [adh.res];
-    figure('Name','P2 adhesion distributions','Color','w','Position',[60 60 1200 420]);
-    subplot(1,3,1); histogram(adist, 30); xlabel('signed dist to body edge (px)');
-    ylabel('count'); title(sprintf('distance distribution (n=%d)', numel(adh)));
-    xline(0,'r--','body edge','LabelVerticalAlignment','bottom');
-    subplot(1,3,2); histogram(ares, 30); xlabel('steerable res at adhesion');
-    title('ridge response at adhesions');
-    subplot(1,3,3); scatter(adist, ares, 10, 'filled', 'MarkerFaceAlpha', 0.4);
-    xlabel('dist to edge (px)'); ylabel('res'); title('dist vs res (distal+bright = real tip?)');
-    fprintf('dist: min %.1f  median %.1f  max %.1f px\n', min(adist), median(adist), max(adist));
-    fprintf('res:  min %.1f  median %.1f  max %.1f\n', min(ares), median(ares), max(ares));
+%% --- P2 QC: distance & res distributions ---
+if strcmp(detectMode,'all') && ~isempty(adh)
+    adist = [adh.dist]; ares = [adh.res];
+    figure('Name','P2 distributions','Color','w','Position',[60 60 1200 420]);
+    subplot(1,3,1); histogram(adist,30); xlabel('signed dist to edge (px)'); ylabel('count');
+    title(sprintf('dist distribution (n=%d)', numel(adh)));
+    xline(0,'r--','body edge');
+    subplot(1,3,2); histogram(ares,30); xlabel('steerable res'); title('res at adhesions');
+    subplot(1,3,3); scatter(adist,ares,10,'filled','MarkerFaceAlpha',0.4);
+    xlabel('dist (px)'); ylabel('res'); title('dist vs res');
 end
 
 %% ===================== PROCESS 3: TRACKING =====================
-% (only meaningful with full multi-frame detection; skip for single-frame QC)
 if strcmp(detectMode,'all') && isempty(pp2.ProcessFrames)
     iP3 = MD.getProcessIndex('FilopodiaTrackingProcess',1,0);
     if isempty(iP3)
@@ -176,28 +133,54 @@ if strcmp(detectMode,'all') && isempty(pp2.ProcessFrames)
     end
     trkProc = MD.processes_{iP3};
     pp3 = trkProc.funParams_;
-    pp3.MaxLinkDist    = 10;   % px/frame; raise if filopodia move fast
-    pp3.MaxGapFrames   = 2;    % frames; allow 2-frame gaps
-    pp3.MinTrackLength = 3;    % discard tracks shorter than this
-    % ensure output lands under FilopodiaForcePackage (may be wrong if
-    % the process was created before the folder convention was set)
+    pp3.MaxLinkDist    = 10;
+    pp3.MaxGapFrames   = 2;
+    pp3.MinTrackLength = 3;
     pp3.OutputDirectory = fullfile(MD.outputDirectory_, ...
         'FilopodiaForcePackage', 'FilopodiaTracking');
     trkProc.setPara(pp3);
     tic; trkProc.run(); toc
-
-    trkFile = fullfile(trkProc.funParams_.OutputDirectory, 'filoTracks.mat');
-    T = load(trkFile, 'adhesionTracks');
-    ft = T.adhesionTracks;
-    lifeF = [ft.lifetime];
-    fprintf('Tracking: %d tracks | median lifetime %d frames | max %d frames\n', ...
-        numel(ft), median(lifeF), max(lifeF));
-    figure('Name','P3 lifetime','Color','w');
-    histogram(lifeF); xlabel('track lifetime (frames)'); ylabel('count');
-    title(sprintf('adhesion track lifetimes | n=%d', numel(ft)));
 end
 
-%% ===================== PROCESS 4: CLASSIFICATION (tip/base/shaft) =====================
+%% --- P3 QC: track overlay on image ---
+trkFile = fullfile(trkProc.funParams_.OutputDirectory, 'filoTracks.mat');
+T = load(trkFile, 'adhesionTracks');
+ft = T.adhesionTracks;
+lifeF = [ft.lifetime];
+fprintf('Tracking: %d tracks | median lifetime %d frames | max %d\n', ...
+    numel(ft), median(lifeF), max(lifeF));
+
+% overlay tracks at tQC: show each track as its trajectory up to tQC
+img = double(MD.channels_(iChanTal).loadImage(tQC));
+figure('Name',sprintf('P3 QC: tracks at frame %d',tQC),'Color','w');
+imagesc(img); axis image off; colormap(gray); hold on;
+visboundaries(seg.bodyMask,'Color','c','LineWidth',0.3);
+colors = lines(min(numel(ft),256));
+nShown = 0;
+for i = 1:numel(ft)
+    tr = ft(i);
+    mask = tr.frames <= tQC & tr.frames >= max(1,tQC-20);  % show last 20 frames of trail
+    if ~any(mask), continue; end
+    pos = tr.pos(mask,:);
+    ci = mod(i-1,size(colors,1))+1;
+    plot(pos(:,1), pos(:,2), '-', 'Color', [colors(ci,:) 0.6], 'LineWidth', 0.8);
+    if tr.frames(end) >= tQC && tr.frames(1) <= tQC
+        % adhesion is present at tQC: plot current position
+        idx = find(tr.frames == tQC, 1);
+        if ~isempty(idx)
+            plot(tr.pos(idx,1), tr.pos(idx,2), 'o', 'Color', colors(ci,:), 'MarkerSize', 4, 'LineWidth', 1);
+            nShown = nShown + 1;
+        end
+    end
+end
+title(sprintf('tracks at frame %d: %d visible (trail=last 20 frames)', tQC, nShown));
+
+% lifetime histogram
+figure('Name','P3 QC: lifetimes','Color','w');
+histogram(lifeF,30); xlabel('track lifetime (frames)'); ylabel('count');
+title(sprintf('adhesion track lifetimes | n=%d | median=%d', numel(ft), median(lifeF)));
+
+%% ===================== PROCESS 4: CLASSIFICATION =====================
 if strcmp(detectMode,'all') && isempty(pp2.ProcessFrames)
     iP4 = MD.getProcessIndex('FilopodiaClassificationProcess',1,0);
     if isempty(iP4)
@@ -206,44 +189,85 @@ if strcmp(detectMode,'all') && isempty(pp2.ProcessFrames)
     end
     clsProc = MD.processes_{iP4};
     pp4 = clsProc.funParams_;
-    pp4.MinTipLifetime  = 5;     % frames; well-tracked tip must persist this long
-    pp4.MinLinearFrac   = 0.85;  % trajectory linearity (variance fraction on 1 axis)
-    pp4.MinTipDist      = 6;     % px; tip must reach this far from body
-    pp4.ShaftBand       = 4;     % px; adhesion within this of tip->base line = shaft adhesion
-    pp4.BodyMaxAngle    = 60;    % deg; shaft within this of body-ward
-    pp4.MinReachFrac    = 0.5;   % accept tip if it acts as tip in >= this fraction of frames
+    pp4.MinTipLifetime  = 5;
+    pp4.MinLinearFrac   = 0.85;
+    pp4.MinTipDist      = 6;
+    pp4.ShaftBand       = 4;
+    pp4.BodyMaxAngle    = 60;
+    pp4.MinReachFrac    = 0.5;
+    pp4.LenPenalty      = 0.6;
     pp4.OutputDirectory = fullfile(MD.outputDirectory_, ...
         'FilopodiaForcePackage', 'FilopodiaClassification');
     clsProc.setPara(pp4);
     tic; clsProc.run(); toc
-
-    clsFile = fullfile(clsProc.funParams_.OutputDirectory, 'filoClassification.mat');
-    C = load(clsFile, 'filopodia', 'roleByTrack');
-    nTip = numel(C.filopodia);
-    fprintf('Filopodia: %d well-tracked tips (of %d tracks) | weak-tip %d | background %d\n', ...
-        nTip, numel(C.roleByTrack), sum(strcmp(C.roleByTrack,'weak-tip')), ...
-        sum(strcmp(C.roleByTrack,'background')));
-
-    if nTip > 0
-        figure('Name','P4 filopodium length L(t)','Color','w'); hold on;
-        nShow = min(nTip, 8);
-        for i = 1:nShow
-            f = C.filopodia(i);
-            plot(f.frames*MD.timeInterval_, f.L_nm, '-','LineWidth',1.2);
-        end
-        xlabel('time (s)'); ylabel('filopodium length L (nm)');
-        title(sprintf('L(t) for %d of %d filopodia', nShow, nTip));
-    end
 end
 
+%% --- P4 QC: tip/shaft/base overlay ---
+clsFile = fullfile(clsProc.funParams_.OutputDirectory, 'filoClassification.mat');
+C = load(clsFile);
+nTip = numel(C.filopodia);
+fprintf('Filopodia: %d well-tracked tips | weak-tip %d | background %d\n', ...
+    nTip, sum(strcmp(C.roleByTrack,'weak-tip')), sum(strcmp(C.roleByTrack,'background')));
+
+img = double(MD.channels_(iChanTal).loadImage(tQC));
+figure('Name',sprintf('P4 QC: classification frame %d',tQC),'Color','w');
+imshow(img,[100 500]); axis image off; colormap(gray); hold on;
+visboundaries(seg.bodyMask,'Color','w','LineWidth',0.3);
+% shafts (yellow lines)
+sh = C.shaftByFrame{tQC};
+if ~isempty(sh)
+    plot(sh(:,1), sh(:,2), '-', 'Color', [1 1 0 0.7], 'LineWidth', 1.2);
+end
+% shaft adhesions (yellow dots)
+sa = C.posByFrame.shaft{tQC};
+if ~isempty(sa)
+    plot(sa(:,1), sa(:,2), '.', 'Color', [1 1 0], 'MarkerSize', 10);
+end
+% base (cyan)
+ba = C.posByFrame.base{tQC};
+if ~isempty(ba)
+    plot(ba(:,1), ba(:,2), 'co', 'MarkerSize', 6, 'LineWidth', 1.5);
+end
+% tips (red) last so they're on top
+tp = C.posByFrame.tip{tQC};
+if ~isempty(tp)
+    plot(tp(:,1), tp(:,2), 'ro', 'MarkerSize', 8, 'LineWidth', 1.5);
+end
+title(sprintf('frame %d: %d tips (red) | %d shaft adh (yellow) | %d base (cyan)', ...
+    tQC, size(tp,1), size(sa,1), size(ba,1)));
+
+%% --- P4 QC: L(t) plot ---
+if nTip > 0
+    figure('Name','P4 QC: filopodium length L(t)','Color','w'); hold on;
+    nShow = min(nTip, 10);
+    for i = 1:nShow
+        f = C.filopodia(i);
+        plot(f.frames*MD.timeInterval_, f.L_nm, '-', 'LineWidth', 1.2);
+    end
+    xlabel('time (s)'); ylabel('filopodium length L (nm)');
+    title(sprintf('L(t) for %d of %d filopodia', nShow, nTip));
+end
+
+%% --- P4 diagnostic: tip eligibility ---
+trkFile = fullfile(trkProc.funParams_.OutputDirectory, 'filoTracks.mat');
+T = load(trkFile, 'adhesionTracks'); at = T.adhesionTracks;
+nTr = numel(at); life = [at.lifetime]; maxDist = arrayfun(@(t) max(t.dist), at);
+linFrac = zeros(1,nTr);
+for i = 1:nTr
+    P = at(i).pos; P = P-mean(P,1); Cv = (P'*P)/max(1,size(P,1)-1);
+    ev = sort(eig(Cv),'descend'); linFrac(i) = ev(1)/max(sum(ev),eps);
+end
+pp4 = clsProc.funParams_;
+passLife=life>=pp4.MinTipLifetime; passDist=maxDist>=pp4.MinTipDist;
+passLin=linFrac>=pp4.MinLinearFrac | arrayfun(@(i) sqrt(sum(eig((at(i).pos-mean(at(i).pos))'*(at(i).pos-mean(at(i).pos))/max(1,size(at(i).pos,1)-1))))<3, 1:nTr);
+fprintf('\n=== tip eligibility ===\n');
+fprintf('pass lifetime>=%d: %d/%d\n', pp4.MinTipLifetime, sum(passLife), nTr);
+fprintf('pass maxDist>=%.0f: %d/%d\n', pp4.MinTipDist, sum(passDist), nTr);
+fprintf('pass linearity>=%.2f: %d/%d\n', pp4.MinLinearFrac, sum(passLin), nTr);
+fprintf('pass ALL: %d/%d\n', sum(passLife&passDist&passLin), nTr);
+fprintf('actual tips: %d\n', sum(strcmp(C.roleByTrack,'tip')));
+
 %% ===================== VIEW IN movieViewer =====================
-% After P1/P2/P3 have run on the full movie, open the framework viewer.
-% Each process contributes toggleable overlays:
-%   P1 -> 'Body mask', 'Ridge response (res)', 'Shaft mask'
-%   P2 -> 'Adhesions' (all detected puncta, markers)
-%   P3 -> 'Adhesion tracks' (u-track trajectories with dragtails)
-% Use the checkboxes in the viewer's Overlay panel to turn them on/off,
-% and the time slider to scrub frames.
 movieViewer(MD);
 
 %% ===================== TUNING NOTES =====================
@@ -251,16 +275,19 @@ movieViewer(MD);
 %   pp.GaussianBlurSigma = 3;   % more blur -> smoother threshold
 %   pp.BodyOpenRadius    = 12;  % larger -> cut deeper filopodia roots
 %   pp.BodyClosingRadius = 12;  % larger -> rounder body edge
-%   segProc.setPara(pp); segProc.run();
 %
 % --- P2 adhesion detection ('all' mode) ---
+%   pp2.PSFsigma           = 2.6; % TIP scale (tips > PSF)
 %   pp2.TipMaxDistFromBody = 100; % extend reach
-%   pp2.BaseInsideBand     = 6;   % capture deeper base FAs
 %   pp2.Alpha              = 0.01; % stricter -> fewer adhesions
-%   detProc.setPara(pp2); detProc.run();
 %
 % --- P3 tracking ---
 %   pp3.MaxLinkDist    = 15;   % allow faster-moving tips
 %   pp3.MaxGapFrames   = 3;    % bridge longer disappearances
 %   pp3.MinTrackLength = 5;    % stricter false-track filtering
-%   trkProc.setPara(pp3); trkProc.run();
+%
+% --- P4 classification ---
+%   pp4.MinTipLifetime = 8;    % longer-lived tracks only
+%   pp4.MinLinearFrac  = 0.9;  % stricter linearity
+%   pp4.BodyMaxAngle   = 45;   % tighter radial constraint
+%   pp4.ShaftBand      = 5;    % wider shaft adhesion capture
