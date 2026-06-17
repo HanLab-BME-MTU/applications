@@ -30,7 +30,7 @@ classdef FilopodiaClassificationProcess < DataProcessingProcess
         end
 
         function varargout = loadChannelOutput(obj, iChan, varargin)
-            outputList = {'filopodia', 'tipTracks', 'tipPos', 'basePos', 'shaftLines', 'roleByTrack'};
+            outputList = {'filopodia', 'tipTracks', 'tipPos', 'basePos', 'shaftPos', 'shaftLines', 'roleByTrack'};
             ip = inputParser;
             ip.addRequired('iChan', @(x) isscalar(x) && obj.checkChanNum(x));
             ip.addOptional('iFrame', [], @(x) isempty(x) || all(obj.checkFrameNum(x)));
@@ -47,10 +47,24 @@ classdef FilopodiaClassificationProcess < DataProcessingProcess
             for i = 1:numel(output)
                 switch output{i}
                     case 'filopodia',   varargout{i} = s.filopodia;
-                    case 'tipTracks',   varargout{i} = s.tipTracks;
+                    case 'tipTracks'
+                        tf = s.tipTracks;
+                        if ~isempty(tf) && ~isempty(ip.Results.iFrame)
+                            sel = getTrackSEL(tf);
+                            valid = (iFrame >= sel(:,1) & iFrame <= sel(:,2));
+                            [tf(~valid).tracksCoordAmpCG] = deal([]);
+                            nC = (iFrame - sel(valid,1) + 1) * 8;
+                            vOut = tf(valid);
+                            for q = 1:numel(vOut)
+                                vOut(q).tracksCoordAmpCG = vOut(q).tracksCoordAmpCG(:, 1:nC(q));
+                            end
+                            tf(valid) = vOut;
+                        end
+                        varargout{i} = tf;
                     case 'roleByTrack', varargout{i} = s.roleByTrack;
                     case 'tipPos',      varargout{i} = s.posByFrame.tip{iFrame};
                     case 'basePos',     varargout{i} = s.posByFrame.base{iFrame};
+                    case 'shaftPos',    varargout{i} = s.posByFrame.shaft{iFrame};
                     case 'shaftLines',  varargout{i} = s.shaftByFrame{iFrame};
                 end
             end
@@ -68,17 +82,23 @@ classdef FilopodiaClassificationProcess < DataProcessingProcess
             output(2).formatData = [];
             output(2).defaultDisplayMethod = @(x) LineDisplay('Marker','o', ...
                 'LineStyle','none','Color',[1 0 0],'MarkerSize',9);
-            output(3).name = 'Base adhesions';
-            output(3).var  = 'basePos';
+            output(3).name = 'Shaft adhesions';
+            output(3).var  = 'shaftPos';
             output(3).type = 'overlay';
             output(3).formatData = [];
-            output(3).defaultDisplayMethod = @(x) LineDisplay('Marker','o', ...
-                'LineStyle','none','Color',[0 1 1],'MarkerSize',7);
-            output(4).name = 'Tip tracks';
-            output(4).var  = 'tipTracks';
+            output(3).defaultDisplayMethod = @(x) LineDisplay('Marker','.', ...
+                'LineStyle','none','Color',[1 1 0],'MarkerSize',8);
+            output(4).name = 'Base adhesions';
+            output(4).var  = 'basePos';
             output(4).type = 'overlay';
-            output(4).formatData = @TrackingProcess.formatTracks2D;
-            output(4).defaultDisplayMethod = @(x) TracksDisplay('Color',[1 0.3 0]);
+            output(4).formatData = [];
+            output(4).defaultDisplayMethod = @(x) LineDisplay('Marker','o', ...
+                'LineStyle','none','Color',[0 1 1],'MarkerSize',7);
+            output(5).name = 'Tip tracks';
+            output(5).var  = 'tipTracks';
+            output(5).type = 'overlay';
+            output(5).formatData = @TrackingProcess.formatTracks2D;
+            output(5).defaultDisplayMethod = @(x) TracksDisplay('Color',[1 0.3 0]);
         end
     end
 
@@ -96,6 +116,15 @@ classdef FilopodiaClassificationProcess < DataProcessingProcess
             funParams.ChannelIndex    = 1;
             funParams.TrkProcessIndex = [];     % []->find FilopodiaTrackingProcess
             funParams.SegProcessIndex = [];     % []->find FilopodiaSegmentationProcess
+            funParams.DetProcessIndex = [];     % []->find FilopodiaDetectionProcess
+            % --- tip eligibility (only WELL-TRACKED adhesions drive geometry) ---
+            funParams.MinTipLifetime  = 5;      % frames; tip track must persist this long
+            funParams.MinLinearFrac   = 0.85;   % trajectory variance fraction on principal axis (linear)
+            funParams.MinTrajSpread   = 3;      % px; below this a track is "stationary" (linearity n/a)
+            funParams.MinTipDist      = 6;      % px; tip must reach at least this far from body
+            % --- shaft assignment ---
+            funParams.ShaftBand       = 4;      % px; adhesion within this of tip->base line = shaft adhesion
+            % --- straight shaft direction (see straightShaftToBody) ---
             funParams.MaxShaftLen     = 160;    % px; max shaft length (tip reach)
             funParams.SweepRange      = 35;     % deg; direction sweep around ridge/body-ward
             funParams.SweepStep       = 3;      % deg; sweep step
@@ -103,9 +132,7 @@ classdef FilopodiaClassificationProcess < DataProcessingProcess
             funParams.AlignBand       = 3.5;    % px; perpendicular band for collinear tip support
             funParams.AlignWeight     = 0.12;   % weight of collinear support in direction score
             funParams.LenPenalty      = 0.6;    % penalty on shaft length (prefer radial)
-            funParams.BaseReachTol    = 2;      % px; base counts as on-body within this
-            funParams.MinReachFrac    = 0.5;    % shaft must reach body in >= this fraction of frames
-            funParams.MinTipLifetime  = 5;      % frames; tip track must persist this long
+            funParams.MinReachFrac    = 0.5;    % accept tip track if it acts as tip in >= this fraction of its frames
             funParams.VelSmoothWin    = 3;      % frames; smoothing for dL/dt
             funParams.OutputDirectory = [outputDir filesep 'FilopodiaForcePackage' filesep 'FilopodiaClassification'];
         end

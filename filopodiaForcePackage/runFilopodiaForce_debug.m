@@ -206,10 +206,12 @@ if strcmp(detectMode,'all') && isempty(pp2.ProcessFrames)
     end
     clsProc = MD.processes_{iP4};
     pp4 = clsProc.funParams_;
-    pp4.MaxShaftLen     = 160;   % px; max shaft trace length (tip reach)
-    pp4.BaseReachTol    = 2;     % px; base must land within this of body
-    pp4.MinReachFrac    = 0.5;   % shaft must reach body in >= this fraction of frames
-    pp4.MinTipLifetime  = 5;     % frames; tip track must persist this long
+    pp4.MinTipLifetime  = 5;     % frames; well-tracked tip must persist this long
+    pp4.MinLinearFrac   = 0.85;  % trajectory linearity (variance fraction on 1 axis)
+    pp4.MinTipDist      = 6;     % px; tip must reach this far from body
+    pp4.ShaftBand       = 4;     % px; adhesion within this of tip->base line = shaft adhesion
+    pp4.BodyMaxAngle    = 60;    % deg; shaft within this of body-ward
+    pp4.MinReachFrac    = 0.5;   % accept tip if it acts as tip in >= this fraction of frames
     pp4.OutputDirectory = fullfile(MD.outputDirectory_, ...
         'FilopodiaForcePackage', 'FilopodiaClassification');
     clsProc.setPara(pp4);
@@ -218,8 +220,9 @@ if strcmp(detectMode,'all') && isempty(pp2.ProcessFrames)
     clsFile = fullfile(clsProc.funParams_.OutputDirectory, 'filoClassification.mat');
     C = load(clsFile, 'filopodia', 'roleByTrack');
     nTip = numel(C.filopodia);
-    fprintf('Filopodia: %d tip tracks (of %d) reached body and persisted\n', ...
-        nTip, numel(C.roleByTrack));
+    fprintf('Filopodia: %d well-tracked tips (of %d tracks) | weak-tip %d | background %d\n', ...
+        nTip, numel(C.roleByTrack), sum(strcmp(C.roleByTrack,'weak-tip')), ...
+        sum(strcmp(C.roleByTrack,'background')));
 
     if nTip > 0
         figure('Name','P4 filopodium length L(t)','Color','w'); hold on;
