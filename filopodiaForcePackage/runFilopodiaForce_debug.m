@@ -3,8 +3,7 @@
 % (detection) on one MovieData, with QC overlays for tuning.
 % Run cell by cell (Ctrl+Enter). Edit the CONFIG block first.
 % Sangyoon J. Han / 2026
-clear 
-clear class
+
 %% ===================== CONFIG =====================
 mdPath   = '/mnt/nas/Collaborations/Celine_San_Diego/20260411/Soft-KO/KO_HELA_TALIN_G_BEAD_R_soft_40_nm_P_03_Airyscan_Processing_Processed_2_P3/KO HELA TALIN-G BEAD-R-soft 40 nm_P-03-Airyscan Processing-Processed 2.mat';
 iChanTal = 1;             % talin-GFP channel index

@@ -125,10 +125,13 @@ for i = 1:nTr
         roleByTrack{i} = 'tip';
         fr = [sh.frame]; L = [sh.len];
         Lsm = smoothLocal(L, sw);
+        % per-frame tip = first point of each shaft path
+        tipP = zeros(numel(sh), 2);
+        for j = 1:numel(sh), tipP(j,:) = sh(j).path(1,:); end
         n = numel(filopodia)+1;
         filopodia(n).tipTrackId    = adhesionTracks(i).trackId;
         filopodia(n).frames        = fr;
-        filopodia(n).tipPos        = cell2mat(arrayfun(@(s) s.path(1,:), sh, 'unif',0)');
+        filopodia(n).tipPos        = tipP;
         filopodia(n).basePos       = cat(1, sh.base);
         filopodia(n).L             = L;
         filopodia(n).L_nm          = L * pix;

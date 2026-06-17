@@ -5,7 +5,7 @@ classdef FilopodiaForcePackage < Package
     %   1 FilopodiaSegmentationProcess  body mask + steerable ridge maps
     %   2 FilopodiaDetectionProcess     tip/base puncta + anchored shaft trace
     %   3 FilopodiaTrackingProcess      link over time, dL/dt, fluctuation freq
-    %   4 FilopodiaWindowingProcess     arclength windows on tracked centerline
+    %   4 FilopodiaClassificationProcess tip/base/shaft labeling + filopodium assembly
     %   5 FilopodiaSamplingProcess      force (ForceFieldCalculationProcess) + talin
     %   6 FilopodiaStatisticsProcess    population statistics & correlations
     %
@@ -54,7 +54,7 @@ classdef FilopodiaForcePackage < Package
                 'FilopodiaSegmentationProcess', ...
                 'FilopodiaDetectionProcess', ...
                 'FilopodiaTrackingProcess', ...
-                'FilopodiaWindowingProcess', ...
+                'FilopodiaClassificationProcess', ...
                 'FilopodiaSamplingProcess', ...
                 'FilopodiaStatisticsProcess'};
             if nargin == 0, index = 1:numel(procContrs); end
@@ -66,7 +66,7 @@ classdef FilopodiaForcePackage < Package
             m = [0 0 0 0 0 0;   % 1 Segmentation
                  1 0 0 0 0 0;   % 2 Detection
                  0 1 0 0 0 0;   % 3 Tracking
-                 0 0 1 0 0 0;   % 4 Windowing
+                 0 0 1 0 0 0;   % 4 Classification
                  0 0 0 1 0 0;   % 5 Sampling (TFM force is cross-package)
                  0 0 1 1 1 0];  % 6 Statistics
             if nargin < 2, j = 1:size(m, 2); end
@@ -79,7 +79,7 @@ classdef FilopodiaForcePackage < Package
                 @(x,y) FilopodiaSegmentationProcess(x, y, FilopodiaForcePackage.getDefaultSegParams(x, y)), ...
                 @(x,y) FilopodiaDetectionProcess(x, y, FilopodiaForcePackage.getDefaultDetectionParams(x, y)), ...
                 @(x,y) FilopodiaTrackingProcess(x, y, FilopodiaForcePackage.getDefaultTrackingParams(x, y)), ...
-                @(x,y) FilopodiaWindowingProcess(x, y, FilopodiaForcePackage.getDefaultWindowingParams(x, y)), ...
+                @(x,y) FilopodiaClassificationProcess(x, y, FilopodiaForcePackage.getDefaultClassificationParams(x, y)), ...
                 @(x,y) FilopodiaSamplingProcess(x, y, FilopodiaForcePackage.getDefaultSamplingParams(x, y)), ...
                 @(x,y) FilopodiaStatisticsProcess(x, y, FilopodiaForcePackage.getDefaultStatsParams(x, y))};
             if nargin == 0, index = 1:numel(procContrs); end
@@ -106,8 +106,8 @@ classdef FilopodiaForcePackage < Package
         function funParams = getDefaultTrackingParams(owner, outputDir)
             funParams = FilopodiaTrackingProcess.getDefaultParams(owner, outputDir);
         end
-        function funParams = getDefaultWindowingParams(owner, outputDir)
-            funParams = FilopodiaWindowingProcess.getDefaultParams(owner, outputDir);
+        function funParams = getDefaultClassificationParams(owner, outputDir)
+            funParams = FilopodiaClassificationProcess.getDefaultParams(owner, outputDir);
         end
         function funParams = getDefaultSamplingParams(owner, outputDir)
             funParams = FilopodiaSamplingProcess.getDefaultParams(owner, outputDir);

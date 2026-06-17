@@ -30,33 +30,52 @@ root = fullfile(MD.outputDirectory_, 'FilopodiaForcePackage');
 
 % map: process class -> subfolder name
 procMap = {
-    'FilopodiaSegmentationProcess', 'FilopodiaSegmentation';
-    'FilopodiaDetectionProcess',    'FilopodiaDetection';
-    'FilopodiaTrackingProcess',     'FilopodiaTracking';
-    'FilopodiaWindowingProcess',    'FilopodiaWindowing';
-    'FilopodiaSamplingProcess',     'FilopodiaSampling';
-    'FilopodiaStatisticsProcess',   'FilopodiaStatistics';
+    'FilopodiaSegmentationProcess',   'FilopodiaSegmentation';
+    'FilopodiaDetectionProcess',      'FilopodiaDetection';
+    'FilopodiaTrackingProcess',       'FilopodiaTracking';
+    'FilopodiaClassificationProcess', 'FilopodiaClassification';
+    'FilopodiaSamplingProcess',       'FilopodiaSampling';
+    'FilopodiaStatisticsProcess',     'FilopodiaStatistics';
 };
 
-% correct OutputDirectory for every Filopodia process already on MD
+% correct OutputDirectory and fill any newly added default fields for every
+% Filopodia process already on MD
 corrected = 0;
 for i = 1:numel(MD.processes_)
     proc = MD.processes_{i};
     if isempty(proc), continue; end
     row = find(strcmp(procMap(:,1), class(proc)));
     if isempty(row), continue; end
+
+    pp = proc.funParams_;
+    changed = false;
+
+    % (a) fill missing fields from current defaults (handles params added later)
+    def = proc.getDefaultParams(MD);
+    fn = fieldnames(def);
+    for k = 1:numel(fn)
+        if ~isfield(pp, fn{k})
+            pp.(fn{k}) = def.(fn{k});
+            changed = true;
+        end
+    end
+
+    % (b) force canonical OutputDirectory
     correctPath = fullfile(root, procMap{row,2});
-    if ~strcmp(proc.funParams_.OutputDirectory, correctPath)
-        pp = proc.funParams_;
+    if ~strcmp(pp.OutputDirectory, correctPath)
         pp.OutputDirectory = correctPath;
+        changed = true;
+    end
+
+    if changed
         proc.setPara(pp);
         corrected = corrected + 1;
-        fprintf('  Corrected OutputDirectory for %s\n', class(proc));
+        fprintf('  Updated params/path for %s\n', class(proc));
     end
 end
 if corrected > 0
     MD.save();
-    fprintf('Saved MD with %d corrected path(s).\n', corrected);
+    fprintf('Saved MD with %d updated process(es).\n', corrected);
 end
 
 % --- report ---
