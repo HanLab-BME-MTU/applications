@@ -63,8 +63,8 @@ imgs = cell(1, nProc);
 for k = 1:nProc, imgs{k} = double(chan.loadImage(frames(k))); end
 
 progressText(0, 'Filopodia detection', 'Filopodia detection');
-useDQ = ~isempty(ver('parallel'));
-if useDQ, dq = parallel.pool.DataQueue; afterEach(dq, @(~) progressTick(nProc)); end
+dq = parallel.pool.DataQueue;
+afterEach(dq, @(~) progressTick(nProc));
 
 adhCell  = cell(1, nProc);     % all-adhesion mode output
 filoCell = cell(1, nProc);     % tip mode output
@@ -73,15 +73,15 @@ miCell   = cell(1, nProc);
 parfor k = 1:nProc
     t = frames(k);
     img = imgs{k};
-    s = load(fullfile(segOutDir, sprintf('filoSeg_frame_%04d.mat', t)));
+    s = loadSegFrame(fullfile(segOutDir, sprintf('filoSeg_frame_%04d.mat', t)));
     if strcmp(mode,'all')
-        [adh, mi] = detectAdhesionsAll(img, s.bodyMask, s.res, sigma, psArgs, p, t);
+        [adh, mi] = detectAdhesionsAll(img, s.bodyMask, s.res, s.shaftMask, sigma, psArgs, p, t);
         adhCell{k} = adh;  miCell{k} = mi;
     else
         [fi, mi] = detectTips(img, s.bodyMask, s.res, s.theta, sigma, psArgs, p, t);
         filoCell{k} = fi;  miCell{k} = mi;
     end
-    if useDQ, send(dq, 1); end
+    send(dq, 1);
 end
 
 %% assemble outputs indexed by absolute frame
@@ -107,6 +107,19 @@ fprintf('Filopodia detection done (mode=%s). Frames: %s\n', mode, mat2str(frames
 end
 
 % ===================================================================
+function v = getfielddef(s, name, default)
+% Return s.(name) if it exists, otherwise default. Lets old funParams run.
+if isfield(s, name) && ~isempty(s.(name)), v = s.(name); else, v = default; end
+end
+
+% ===================================================================
+function s = loadSegFrame(fname)
+% Isolate load() in a function so it is safe inside the parfor body
+% regardless of MATLAB transparency analysis.
+s = load(fname);
+end
+
+% ===================================================================
 function progressTick(N)
 persistent c
 if isempty(c), c = 0; end
@@ -116,35 +129,74 @@ if c >= N, c = []; end
 end
 
 % ===================================================================
-function [adh, mi] = detectAdhesionsAll(img, bodyMask, res, sigma, psArgs, p, t)
-% Detect ALL talin adhesion puncta near the cell edge as point features.
-adh = struct('pos',{}, 'amp',{}, 'dist',{}, 'res',{}, 'frame',{});
+function [adh, mi] = detectAdhesionsAll(img, bodyMask, res, shaftMask, sigma, psArgs, p, t)
+% Detect ALL talin adhesion puncta near the cell edge as point features,
+% then augment with ridge-tip candidates (distal ends of the body-connected
+% steerable ridge) so that dim tip adhesions missed by pointSourceDetection
+% are still seeded for tracking.
+adh = struct('pos',{}, 'amp',{}, 'dist',{}, 'res',{}, 'source',{}, 'frame',{});
 mi  = struct('xCoord', [], 'yCoord', [], 'amp', []);
 [H, W] = size(bodyMask);
 
-pstruct = pointSourceDetection(img, sigma, psArgs{:});
-if isempty(pstruct) || isempty(pstruct.x), return; end
-px = pstruct.x(:); py = pstruct.y(:); pa = pstruct.A(:);
-
 % signed distance to body edge: + outside, - inside
 sd = bwdist(bodyMask) - bwdist(~bodyMask);
-rc = sub2ind([H W], min(max(round(py),1),H), min(max(round(px),1),W));
-dsignal = sd(rc);
 
-% keep adhesions from just inside the edge (base FAs) out to the max reach
-keep = (dsignal >= -p.BaseInsideBand) & (dsignal <= p.TipMaxDistFromBody);
-if ~any(keep), return; end
-px = px(keep); py = py(keep); pa = pa(keep); dk = dsignal(keep);
-rk = res(sub2ind([H W], min(max(round(py),1),H), min(max(round(px),1),W)));
-
-n = numel(px);
-for i = 1:n
-    adh(i).pos = [px(i), py(i)]; adh(i).amp = pa(i);
-    adh(i).dist = dk(i); adh(i).res = rk(i); adh(i).frame = t;
+% --- (1) bright talin puncta ---
+px = []; py = []; pa = [];
+pstruct = pointSourceDetection(img, sigma, psArgs{:});
+if ~isempty(pstruct) && ~isempty(pstruct.x)
+    px = pstruct.x(:); py = pstruct.y(:); pa = pstruct.A(:);
+    baseIn = getfielddef(p,'BaseInsideBand', 4);
+    tipMax = getfielddef(p,'TipMaxDistFromBody', 130);
+    rc = sub2ind([H W], min(max(round(py),1),H), min(max(round(px),1),W));
+    keep = (sd(rc) >= -baseIn) & (sd(rc) <= tipMax);
+    px = px(keep); py = py(keep); pa = pa(keep);
 end
-mi.xCoord = [px, zeros(n,1)];
-mi.yCoord = [py, zeros(n,1)];
-mi.amp    = [pa, zeros(n,1)];
+
+% --- (2) ridge-tip candidates from the main (body-connected) shaftMask ---
+% Read params defensively so an older funParams (missing these fields) still runs.
+useRidge = ~isfield(p,'UseRidgeTips')      || p.UseRidgeTips;
+minRidge = getfielddef(p,'MinRidgeArea',       15);
+minReach = getfielddef(p,'RidgeTipMinReach',    6);
+minBranch= getfielddef(p,'RidgeTipMinBranch',  12);
+gapBridge= getfielddef(p,'RidgeTipGapBridge',   4);
+mergeR   = getfielddef(p,'RidgeTipMergeRadius', 5);
+dedupR   = getfielddef(p,'RidgeTipDedupRadius', 5);
+rtx = []; rty = [];
+if useRidge && ~isempty(shaftMask) && any(shaftMask(:))
+    % distal endpoints of every ridge branch (multiple tips per component)
+    rt = filopodiaRidgeTips(bodyMask, shaftMask, minRidge, minBranch, minReach, gapBridge, mergeR);
+    if ~isempty(rt), rtx = rt(:,1); rty = rt(:,2); end
+    % drop ridge tips that duplicate an existing punctum (within dedup radius)
+    if ~isempty(rtx) && ~isempty(px)
+        keepR = true(numel(rtx),1);
+        for i = 1:numel(rtx)
+            if min((px-rtx(i)).^2 + (py-rty(i)).^2) < dedupR^2
+                keepR(i) = false;
+            end
+        end
+        rtx = rtx(keepR); rty = rty(keepR);
+    end
+end
+
+% --- combine puncta + ridge tips ---
+allx = [px; rtx]; ally = [py; rty];
+src  = [ones(numel(px),1); 2*ones(numel(rtx),1)];   % 1=punctum, 2=ridge tip
+if isempty(allx), return; end
+rcA = sub2ind([H W], min(max(round(ally),1),H), min(max(round(allx),1),W));
+amp = [pa; img(rcA(numel(px)+1:end))];               % ridge tips: raw intensity as amp
+dk  = sd(rcA);
+rk  = res(rcA);
+
+n = numel(allx);
+for i = 1:n
+    adh(i).pos = [allx(i), ally(i)]; adh(i).amp = amp(i);
+    adh(i).dist = dk(i); adh(i).res = rk(i);
+    adh(i).source = src(i); adh(i).frame = t;
+end
+mi.xCoord = [allx, zeros(n,1)];
+mi.yCoord = [ally, zeros(n,1)];
+mi.amp    = [amp,  zeros(n,1)];
 end
 
 % ===================================================================

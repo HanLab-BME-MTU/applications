@@ -4,45 +4,68 @@ function pkg = setupFilopodiaForcePackage(MD)
 %   pkg = setupFilopodiaForcePackage(MD)
 %
 % Checks if FilopodiaForcePackage is already registered on MD. If not,
-% creates and registers it, then saves MD. Returns the package object.
-%
-% Run once per MovieData before using the package. After this,
-% MD.packages_ will include the package and it will appear in the GUI.
-%
-% Example:
-%   MD = MovieData.load('/path/to/movieData.mat');
-%   pkg = setupFilopodiaForcePackage(MD);
-%   pkg.processes_{1}.run();   % run segmentation
+% creates and registers it, then saves MD. Either way, corrects the
+% OutputDirectory of every Filopodia process to the canonical path under
+% <movieDir>/FilopodiaForcePackage/. This is necessary when processes
+% were first created before the folder convention was set.
 %
 % Sangyoon J. Han / 2026
 
-% check if already registered
+assert(~isempty(MD.pixelSize_),    'MD.pixelSize_ is empty.');
+assert(~isempty(MD.timeInterval_), 'MD.timeInterval_ is empty.');
+
+% --- register package if not present ---
 iP = cellfun(@(p) isa(p,'FilopodiaForcePackage'), MD.packages_);
 if any(iP)
     pkg = MD.packages_{find(iP,1)};
     fprintf('FilopodiaForcePackage already registered (index %d).\n', find(iP,1));
-    return;
+else
+    pkg = FilopodiaForcePackage(MD);
+    MD.addPackage(pkg);
+    fprintf('FilopodiaForcePackage registered.\n');
 end
 
-% sanity: needs pixel size and time interval for physical units
-assert(~isempty(MD.pixelSize_), ...
-    'MD.pixelSize_ is empty. Fill in pixel size before setting up the package.');
-assert(~isempty(MD.timeInterval_), ...
-    'MD.timeInterval_ is empty. Fill in time interval before setting up the package.');
+% --- canonical output root ---
+root = fullfile(MD.outputDirectory_, 'FilopodiaForcePackage');
 
-% create and register
-pkg = FilopodiaForcePackage(MD);
-MD.addPackage(pkg);
-MD.save();
+% map: process class -> subfolder name
+procMap = {
+    'FilopodiaSegmentationProcess', 'FilopodiaSegmentation';
+    'FilopodiaDetectionProcess',    'FilopodiaDetection';
+    'FilopodiaTrackingProcess',     'FilopodiaTracking';
+    'FilopodiaWindowingProcess',    'FilopodiaWindowing';
+    'FilopodiaSamplingProcess',     'FilopodiaSampling';
+    'FilopodiaStatisticsProcess',   'FilopodiaStatistics';
+};
 
-fprintf('FilopodiaForcePackage registered and MD saved.\n');
-fprintf('Output root: %s\n', pkg.outputDirectory_);
-fprintf('Processes:\n');
-for i = 1:numel(pkg.processes_)
-    if ~isempty(pkg.processes_{i})
-        fprintf('  %d. %s\n', i, class(pkg.processes_{i}));
-    else
-        fprintf('  %d. (not yet created)\n', i);
+% correct OutputDirectory for every Filopodia process already on MD
+corrected = 0;
+for i = 1:numel(MD.processes_)
+    proc = MD.processes_{i};
+    if isempty(proc), continue; end
+    row = find(strcmp(procMap(:,1), class(proc)));
+    if isempty(row), continue; end
+    correctPath = fullfile(root, procMap{row,2});
+    if ~strcmp(proc.funParams_.OutputDirectory, correctPath)
+        pp = proc.funParams_;
+        pp.OutputDirectory = correctPath;
+        proc.setPara(pp);
+        corrected = corrected + 1;
+        fprintf('  Corrected OutputDirectory for %s\n', class(proc));
+    end
+end
+if corrected > 0
+    MD.save();
+    fprintf('Saved MD with %d corrected path(s).\n', corrected);
+end
+
+% --- report ---
+fprintf('Output root: %s\n', root);
+for i = 1:numel(MD.processes_)
+    proc = MD.processes_{i};
+    if isempty(proc), continue; end
+    if any(strcmp(procMap(:,1), class(proc)))
+        fprintf('  %s -> %s\n', class(proc), proc.funParams_.OutputDirectory);
     end
 end
 end

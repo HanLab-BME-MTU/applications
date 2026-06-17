@@ -29,7 +29,7 @@ classdef FilopodiaDetectionProcess < DetectionProcess
         end
 
         function varargout = loadChannelOutput(obj, iChan, varargin)
-            outputList = {'movieInfo', 'filoInfo'};
+            outputList = {'movieInfo', 'adhesionInfo', 'filoInfo'};
             ip = inputParser;
             ip.addRequired('iChan', @(x) isscalar(x) && obj.checkChanNum(x));
             ip.addOptional('iFrame', 1:obj.owner_.nFrames_, @(x) all(obj.checkFrameNum(x)));
@@ -48,10 +48,20 @@ classdef FilopodiaDetectionProcess < DetectionProcess
                 varargout{k} = val; %#ok<AGROW>
             end
         end
+
+        function output = getDrawableOutput(obj)
+            colors = hsv(numel(obj.owner_.channels_));
+            output(1).name = 'Adhesion puncta';
+            output(1).var  = 'movieInfo';
+            output(1).type = 'overlay';
+            output(1).formatData = @DetectionProcess.formatOutput;
+            output(1).defaultDisplayMethod = @(x) LineDisplay('Marker','o', ...
+                'LineStyle','none','Color',colors(x,:));
+        end
     end
 
     methods (Static)
-        function name = getName(), name = 'Filopodia Detection (tip/base/shaft)'; end
+        function name = getName(), name = 'Filopodia Detection'; end
         function h = GUI(), h = @abstractProcessGUI; end   % TODO custom GUI
 
         function funParams = getDefaultParams(owner, varargin)
@@ -65,13 +75,21 @@ classdef FilopodiaDetectionProcess < DetectionProcess
             funParams.ChannelIndex    = 1;          % talin-GFP
             funParams.SegProcessIndex = [];         % []->find FilopodiaSegmentationProcess
             % pointSourceDetection
-            funParams.PSFsigma        = 1.5;        % px; from channel psfSigma_
+            funParams.PSFsigma        = 2.6;        % px; TIP scale (tips are larger than the PSF)
             funParams.Alpha           = 0.05;
             funParams.ConfRadius      = [];         % default 2*sigma
             funParams.WindowSize      = [];         % default 4*sigma
             % detection mode
             funParams.DetectMode = 'auto';          % 'auto' (multi-frame->all, 1-frame->tip) | 'all' | 'tip'
             funParams.BaseInsideBand = 4;           % px inside body edge still counted as a (base) adhesion ('all' mode)
+            % ridge-tip augmentation ('all' mode): seed dim tips from the main shaftMask
+            funParams.UseRidgeTips       = false;   % OFF: tips come from blob detection + shaft trace (P4), not ridge endpoints
+            funParams.MinRidgeArea       = 15;      % px; drop tiny ridge specks before endpoint search
+            funParams.RidgeTipMinReach   = 6;       % px; ridge tip must reach this far from body
+            funParams.RidgeTipMinBranch  = 12;      % px; prune skeleton spurs shorter than this
+            funParams.RidgeTipGapBridge  = 4;       % px; bridge ridge-to-body gaps (recover near-root breaks)
+            funParams.RidgeTipMergeRadius = 5;      % px; merge ridge tips closer than this
+            funParams.RidgeTipDedupRadius = 5;      % px; skip ridge tips already covered by a punctum
             % tip vs base classification
             funParams.TipMaxDistFromBody = 130;     % px outside body -> tip/adhesion candidate gate
             funParams.BaseSearchBand     = 5;       % px band around body edge -> base

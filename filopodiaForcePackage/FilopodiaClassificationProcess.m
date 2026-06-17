@@ -1,0 +1,113 @@
+classdef FilopodiaClassificationProcess < DataProcessingProcess
+    % Process 4. Assemble filopodia from tracked tip adhesions by tracing each
+    % shaft from the tip to the body along the steerable ridge orientation.
+    % The trace endpoint on the body is the base; shaft arc length is the
+    % filopodium length L(t). Tracks whose shaft does not reach the body often
+    % enough (background blobs) are rejected. No ridge-mask skeletons are used,
+    % so per-frame tips are stable (they are tracked intensity blobs).
+
+    methods (Access = public)
+        function obj = FilopodiaClassificationProcess(owner, varargin)
+            if nargin == 0
+                super_args = {};
+            else
+                ip = inputParser;
+                ip.addRequired('owner', @(x) isa(x, 'MovieData'));
+                ip.addOptional('outputDir', owner.outputDirectory_, @ischar);
+                ip.addOptional('funParams', [], @isstruct);
+                ip.parse(owner, varargin{:});
+                outputDir = ip.Results.outputDir;
+                funParams = ip.Results.funParams;
+                super_args{1} = owner;
+                super_args{2} = FilopodiaClassificationProcess.getName;
+                super_args{3} = @classifyMovieFilopodia;
+                if isempty(funParams)
+                    funParams = FilopodiaClassificationProcess.getDefaultParams(owner, outputDir);
+                end
+                super_args{4} = funParams;
+            end
+            obj = obj@DataProcessingProcess(super_args{:});
+        end
+
+        function varargout = loadChannelOutput(obj, iChan, varargin)
+            outputList = {'filopodia', 'tipTracks', 'tipPos', 'basePos', 'shaftLines', 'roleByTrack'};
+            ip = inputParser;
+            ip.addRequired('iChan', @(x) isscalar(x) && obj.checkChanNum(x));
+            ip.addOptional('iFrame', [], @(x) isempty(x) || all(obj.checkFrameNum(x)));
+            ip.addParamValue('useCache', true, @islogical);
+            ip.addParamValue('iZ', [], @(x) isempty(x) || ismember(x,1:obj.owner_.zSize_));
+            ip.addParamValue('output', 'tipPos', @(x) all(ismember(x, outputList)));
+            ip.parse(iChan, varargin{:});
+            output = ip.Results.output; iFrame = ip.Results.iFrame;
+            if ischar(output), output = {output}; end
+            if isempty(iFrame), iFrame = 1; end
+            s = cached.load(obj.outFilePaths_{1, iChan}, '-useCache', ip.Results.useCache);
+
+            varargout = cell(numel(output), 1);
+            for i = 1:numel(output)
+                switch output{i}
+                    case 'filopodia',   varargout{i} = s.filopodia;
+                    case 'tipTracks',   varargout{i} = s.tipTracks;
+                    case 'roleByTrack', varargout{i} = s.roleByTrack;
+                    case 'tipPos',      varargout{i} = s.posByFrame.tip{iFrame};
+                    case 'basePos',     varargout{i} = s.posByFrame.base{iFrame};
+                    case 'shaftLines',  varargout{i} = s.shaftByFrame{iFrame};
+                end
+            end
+        end
+
+        function output = getDrawableOutput(obj)
+            output(1).name = 'Filopodium shafts';
+            output(1).var  = 'shaftLines';
+            output(1).type = 'overlay';
+            output(1).formatData = [];
+            output(1).defaultDisplayMethod = @(x) LineDisplay('Color',[1 1 0],'LineWidth',1);
+            output(2).name = 'Tip adhesions';
+            output(2).var  = 'tipPos';
+            output(2).type = 'overlay';
+            output(2).formatData = [];
+            output(2).defaultDisplayMethod = @(x) LineDisplay('Marker','o', ...
+                'LineStyle','none','Color',[1 0 0],'MarkerSize',9);
+            output(3).name = 'Base adhesions';
+            output(3).var  = 'basePos';
+            output(3).type = 'overlay';
+            output(3).formatData = [];
+            output(3).defaultDisplayMethod = @(x) LineDisplay('Marker','o', ...
+                'LineStyle','none','Color',[0 1 1],'MarkerSize',7);
+            output(4).name = 'Tip tracks';
+            output(4).var  = 'tipTracks';
+            output(4).type = 'overlay';
+            output(4).formatData = @TrackingProcess.formatTracks2D;
+            output(4).defaultDisplayMethod = @(x) TracksDisplay('Color',[1 0.3 0]);
+        end
+    end
+
+    methods (Static)
+        function name = getName(), name = 'Filopodia Classification'; end
+        function h = GUI(), h = @abstractProcessGUI; end
+
+        function funParams = getDefaultParams(owner, varargin)
+            ip = inputParser;
+            ip.addRequired('owner', @(x) isa(x, 'MovieData'));
+            ip.addOptional('outputDir', owner.outputDirectory_, @ischar);
+            ip.parse(owner, varargin{:});
+            outputDir = ip.Results.outputDir;
+
+            funParams.ChannelIndex    = 1;
+            funParams.TrkProcessIndex = [];     % []->find FilopodiaTrackingProcess
+            funParams.SegProcessIndex = [];     % []->find FilopodiaSegmentationProcess
+            funParams.MaxShaftLen     = 160;    % px; max shaft length (tip reach)
+            funParams.SweepRange      = 35;     % deg; direction sweep around ridge/body-ward
+            funParams.SweepStep       = 3;      % deg; sweep step
+            funParams.BodyMaxAngle    = 60;     % deg; shaft must be within this of body-ward
+            funParams.AlignBand       = 3.5;    % px; perpendicular band for collinear tip support
+            funParams.AlignWeight     = 0.12;   % weight of collinear support in direction score
+            funParams.LenPenalty      = 0.6;    % penalty on shaft length (prefer radial)
+            funParams.BaseReachTol    = 2;      % px; base counts as on-body within this
+            funParams.MinReachFrac    = 0.5;    % shaft must reach body in >= this fraction of frames
+            funParams.MinTipLifetime  = 5;      % frames; tip track must persist this long
+            funParams.VelSmoothWin    = 3;      % frames; smoothing for dL/dt
+            funParams.OutputDirectory = [outputDir filesep 'FilopodiaForcePackage' filesep 'FilopodiaClassification'];
+        end
+    end
+end

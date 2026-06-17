@@ -24,16 +24,17 @@ classdef FilopodiaSegmentationProcess < ImageAnalysisProcess
             obj = obj@ImageAnalysisProcess(super_args{:});
         end
 
-        function varargout = loadChannelOutput(obj, iChan, iFrame, varargin)
+        function varargout = loadChannelOutput(obj, iChan, varargin)
             % Load one frame's segmentation result directly from the output
             % directory stored in funParams_ (robust to outFilePaths_ being empty).
             outputList = {'bodyMask','res','theta','nms','scaleMap','shaftMask'};
             ip = inputParser;
             ip.addRequired('iChan',  @(x) isscalar(x) && obj.checkChanNum(x));
-            ip.addRequired('iFrame', @(x) isscalar(x) && obj.checkFrameNum(x));
+            ip.addOptional('iFrame', 1, @(x) isscalar(x) && obj.checkFrameNum(x));
             ip.addParamValue('output',   outputList, @(x) all(ismember(x, outputList)));
             ip.addParamValue('useCache', true,       @islogical);
-            ip.parse(iChan, iFrame, varargin{:});
+            ip.parse(iChan, varargin{:});
+            iFrame = ip.Results.iFrame;
             output = ip.Results.output;
             if ischar(output), output = {output}; end
 
@@ -43,6 +44,25 @@ classdef FilopodiaSegmentationProcess < ImageAnalysisProcess
                 'P1 frame file not found: %s\nRun FilopodiaSegmentationProcess first.', fname);
             s = cached.load(fname, '-useCache', ip.Results.useCache, output{:});
             for k = 1:numel(output), varargout{k} = s.(output{k}); end %#ok<AGROW>
+        end
+
+        function output = getDrawableOutput(obj)
+            colors = hsv(numel(obj.owner_.channels_));
+            output(1).name = 'Body mask';
+            output(1).var  = 'bodyMask';
+            output(1).type = 'overlay';
+            output(1).formatData = @MaskProcess.getMaskBoundaries;
+            output(1).defaultDisplayMethod = @(x) LineDisplay('Color', colors(x,:));
+            output(2).name = 'Ridge response (res)';
+            output(2).var  = 'res';
+            output(2).type = 'image';
+            output(2).formatData = @(x) double(x);
+            output(2).defaultDisplayMethod = @(x) ImageDisplay('Colormap','hot','Colorbar','on');
+            output(3).name = 'Shaft mask';
+            output(3).var  = 'shaftMask';
+            output(3).type = 'overlay';
+            output(3).formatData = @MaskProcess.getMaskBoundaries;
+            output(3).defaultDisplayMethod = @(x) LineDisplay('Color',[0.2 0.6 1]);
         end
     end
 
@@ -61,7 +81,7 @@ classdef FilopodiaSegmentationProcess < ImageAnalysisProcess
             funParams.ChannelIndex      = 1;
             funParams.SteerableOrder    = 4;
             funParams.SigmaArray        = [1 2 4];
-            funParams.BodyThreshold     = 'otsu';
+            funParams.BodyThreshold     = 'rosin';
             funParams.GaussianBlurSigma = 2;     % px; blur before body threshold
             funParams.BodyMinArea       = 500;
             funParams.BodyOpenRadius    = 8;     % px; opening removes filopodia roots (despike)

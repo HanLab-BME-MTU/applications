@@ -3,11 +3,12 @@
 % (detection) on one MovieData, with QC overlays for tuning.
 % Run cell by cell (Ctrl+Enter). Edit the CONFIG block first.
 % Sangyoon J. Han / 2026
-
+clear 
+clear class
 %% ===================== CONFIG =====================
 mdPath   = '/mnt/nas/Collaborations/Celine_San_Diego/20260411/Soft-KO/KO_HELA_TALIN_G_BEAD_R_soft_40_nm_P_03_Airyscan_Processing_Processed_2_P3/KO HELA TALIN-G BEAD-R-soft 40 nm_P-03-Airyscan Processing-Processed 2.mat';
 iChanTal = 1;             % talin-GFP channel index
-tFrame   = 1;             % frame to inspect in QC
+tFrame   = [];             % frame to inspect in QC
 
 if isempty(mdPath)
     assert(exist('MD','var')==1, 'Load MD first or set mdPath.');
@@ -45,9 +46,10 @@ segProc.setPara(pp);
 tic; segProc.run(); toc
 
 %% --- P1 QC: body mask + ridge response ---
-img  = double(MD.channels_(iChanTal).loadImage(tFrame));
+tFrameToInspect = 3;
+img  = double(MD.channels_(iChanTal).loadImage(tFrameToInspect));
 segDir = segProc.funParams_.OutputDirectory;
-seg  = load(fullfile(segDir, sprintf('filoSeg_frame_%04d.mat', tFrame)));
+seg  = load(fullfile(segDir, sprintf('filoSeg_frame_%04d.mat', tFrameToInspect)));
 bodyMask = seg.bodyMask;
 res      = seg.res;
 
@@ -68,7 +70,13 @@ if isempty(iP2)
 end
 detProc = MD.processes_{iP2};
 
+% merge any newly added default fields into existing params (e.g. UseRidgeTips)
+defP2 = FilopodiaDetectionProcess.getDefaultParams(MD);
 pp2 = detProc.funParams_;
+fn = fieldnames(defP2);
+for ii = 1:numel(fn)
+    if ~isfield(pp2, fn{ii}), pp2.(fn{ii}) = defP2.(fn{ii}); end
+end
 pp2.ChannelIndex = iChanTal;
 if ~isempty(MD.channels_(iChanTal).psfSigma_)
     pp2.PSFsigma = MD.channels_(iChanTal).psfSigma_;
@@ -96,13 +104,13 @@ S = load(detFile);
 detectMode = S.detectMode;
 fprintf('Frame %d: DetectMode = %s\n', tFrame, detectMode);
 
-img = double(MD.channels_(iChanTal).loadImage(tFrame));
+img = double(MD.channels_(iChanTal).loadImage(tFrameToInspect));
 figure('Name','P2 QC','Color','w');
 
 if strcmp(detectMode, 'all')
     % 'all' mode: show all detected adhesion puncta, colored by signed distance
     % to body edge (positive = outside, negative = inside).
-    adh = S.adhesionInfo{tFrame};
+    adh = S.adhesionInfo{tFrameToInspect};
     fprintf('Frame %d: %d adhesions detected (all mode)\n', tFrame, numel(adh));
 
     if ~isempty(adh)
@@ -172,6 +180,10 @@ if strcmp(detectMode,'all') && isempty(pp2.ProcessFrames)
     pp3.MaxLinkDist    = 10;   % px/frame; raise if filopodia move fast
     pp3.MaxGapFrames   = 2;    % frames; allow 2-frame gaps
     pp3.MinTrackLength = 3;    % discard tracks shorter than this
+    % ensure output lands under FilopodiaForcePackage (may be wrong if
+    % the process was created before the folder convention was set)
+    pp3.OutputDirectory = fullfile(MD.outputDirectory_, ...
+        'FilopodiaForcePackage', 'FilopodiaTracking');
     trkProc.setPara(pp3);
     tic; trkProc.run(); toc
 
@@ -185,6 +197,52 @@ if strcmp(detectMode,'all') && isempty(pp2.ProcessFrames)
     histogram(lifeF); xlabel('track lifetime (frames)'); ylabel('count');
     title(sprintf('adhesion track lifetimes | n=%d', numel(ft)));
 end
+
+%% ===================== PROCESS 4: CLASSIFICATION (tip/base/shaft) =====================
+if strcmp(detectMode,'all') && isempty(pp2.ProcessFrames)
+    iP4 = MD.getProcessIndex('FilopodiaClassificationProcess',1,0);
+    if isempty(iP4)
+        MD.addProcess(FilopodiaClassificationProcess(MD));
+        iP4 = MD.getProcessIndex('FilopodiaClassificationProcess',1,0);
+    end
+    clsProc = MD.processes_{iP4};
+    pp4 = clsProc.funParams_;
+    pp4.MaxShaftLen     = 160;   % px; max shaft trace length (tip reach)
+    pp4.BaseReachTol    = 2;     % px; base must land within this of body
+    pp4.MinReachFrac    = 0.5;   % shaft must reach body in >= this fraction of frames
+    pp4.MinTipLifetime  = 5;     % frames; tip track must persist this long
+    pp4.OutputDirectory = fullfile(MD.outputDirectory_, ...
+        'FilopodiaForcePackage', 'FilopodiaClassification');
+    clsProc.setPara(pp4);
+    tic; clsProc.run(); toc
+
+    clsFile = fullfile(clsProc.funParams_.OutputDirectory, 'filoClassification.mat');
+    C = load(clsFile, 'filopodia', 'roleByTrack');
+    nTip = numel(C.filopodia);
+    fprintf('Filopodia: %d tip tracks (of %d) reached body and persisted\n', ...
+        nTip, numel(C.roleByTrack));
+
+    if nTip > 0
+        figure('Name','P4 filopodium length L(t)','Color','w'); hold on;
+        nShow = min(nTip, 8);
+        for i = 1:nShow
+            f = C.filopodia(i);
+            plot(f.frames*MD.timeInterval_, f.L_nm, '-','LineWidth',1.2);
+        end
+        xlabel('time (s)'); ylabel('filopodium length L (nm)');
+        title(sprintf('L(t) for %d of %d filopodia', nShow, nTip));
+    end
+end
+
+%% ===================== VIEW IN movieViewer =====================
+% After P1/P2/P3 have run on the full movie, open the framework viewer.
+% Each process contributes toggleable overlays:
+%   P1 -> 'Body mask', 'Ridge response (res)', 'Shaft mask'
+%   P2 -> 'Adhesions' (all detected puncta, markers)
+%   P3 -> 'Adhesion tracks' (u-track trajectories with dragtails)
+% Use the checkboxes in the viewer's Overlay panel to turn them on/off,
+% and the time slider to scrub frames.
+movieViewer(MD);
 
 %% ===================== TUNING NOTES =====================
 % --- P1 body segmentation ---

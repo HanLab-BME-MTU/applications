@@ -79,6 +79,7 @@ adhesionTracks = struct('trackId',{}, 'frames',{}, 'featIdx',{}, 'pos',{}, ...
     'amp',{}, 'dist',{}, 'dist_nm',{}, 'lifetime',{}, 'lifetime_s',{});
 
 kept = 0;
+keptOrig = [];
 for i = 1:numel(tracksFinal)
     se = tracksFinal(i).seqOfEvents;
     sf = se(1,1); ef = se(2,1);
@@ -101,6 +102,7 @@ for i = 1:numel(tracksFinal)
     fr=fr(good); fIdx=fIdx(good); pos=pos(good,:); amp=amp(good); dist=dist(good);
 
     kept = kept + 1;
+    keptOrig(kept) = i; %#ok<AGROW>
     adhesionTracks(kept).trackId    = kept;
     adhesionTracks(kept).frames     = fr;
     adhesionTracks(kept).featIdx    = fIdx;        % index into adhesionInfo{frame}
@@ -112,7 +114,14 @@ for i = 1:numel(tracksFinal)
     adhesionTracks(kept).lifetime_s = (fr(end)-fr(1)) * dt;
 end
 
-save(outFile, 'adhesionTracks', 'detectMode', '-v7.3');
+% keep the matching subset of raw u-track output for movieViewer (TracksDisplay)
+if isempty(keptOrig)
+    tracksFinal = tracksFinal([]);
+else
+    tracksFinal = tracksFinal(keptOrig);
+end
+
+save(outFile, 'adhesionTracks', 'tracksFinal', 'detectMode', '-v7.3');
 fprintf('Adhesion tracking done: %d tracks kept (of %d raw) with >= %d frames.\n', ...
     kept, numel(tracksFinal), p.MinTrackLength);
 fprintf('Next: Process 4 assigns tip/base/shaft roles and assembles filopodia.\n');

@@ -30,15 +30,48 @@ classdef FilopodiaTrackingProcess < DataProcessingProcess
         end
 
         function varargout = loadChannelOutput(obj, iChan, varargin)
-            outputList = {'filoTracks'};
+            outputList = {'adhesionTracks', 'tracksFinal'};
             ip = inputParser;
             ip.addRequired('iChan', @(x) isscalar(x) && obj.checkChanNum(x));
-            ip.addParamValue('output', outputList, @(x) all(ismember(x, outputList)));
+            ip.addOptional('iFrame', [], @(x) isempty(x) || all(obj.checkFrameNum(x)));
             ip.addParamValue('useCache', true, @islogical);
+            ip.addParamValue('iZ', [], @(x) isempty(x) || ismember(x,1:obj.owner_.zSize_));
+            ip.addParamValue('output', 'tracksFinal', @(x) all(ismember(x, outputList)));
             ip.parse(iChan, varargin{:});
-            output = ip.Results.output; if ischar(output), output = {output}; end
-            s = cached.load(obj.outFilePaths_{1, iChan}, '-useCache', ip.Results.useCache, output{:});
-            for k = 1:numel(output), varargout{k} = s.(output{k}); end %#ok<AGROW>
+            output = ip.Results.output; iFrame = ip.Results.iFrame;
+            if ischar(output), output = {output}; end
+            s = cached.load(obj.outFilePaths_{1, iChan}, '-useCache', ip.Results.useCache);
+
+            varargout = cell(numel(output), 1);
+            for i = 1:numel(output)
+                switch output{i}
+                    case 'tracksFinal',    varargout{i} = s.tracksFinal;
+                    case 'adhesionTracks', varargout{i} = s.adhesionTracks;
+                end
+                % per-frame truncation so dragtails grow as the movie plays
+                if strcmp(output{i},'tracksFinal') && ~isempty(iFrame) && ~isempty(s.tracksFinal)
+                    tf = s.tracksFinal;
+                    sel = getTrackSEL(tf);
+                    valid = (iFrame >= sel(:,1) & iFrame <= sel(:,2));
+                    [tf(~valid).tracksCoordAmpCG] = deal([]);
+                    nC = (iFrame - sel(valid,1) + 1) * 8;
+                    vOut = tf(valid);
+                    for j = 1:numel(vOut)
+                        vOut(j).tracksCoordAmpCG = vOut(j).tracksCoordAmpCG(:, 1:nC(j));
+                    end
+                    tf(valid) = vOut;
+                    varargout{i} = tf;
+                end
+            end
+        end
+
+        function output = getDrawableOutput(obj)
+            colors = hsv(numel(obj.owner_.channels_));
+            output(1).name = 'Tip adhesion tracks';
+            output(1).var  = 'tracksFinal';
+            output(1).type = 'overlay';
+            output(1).formatData = @TrackingProcess.formatTracks2D;
+            output(1).defaultDisplayMethod = @(x) TracksDisplay('Color', colors(x,:));
         end
     end
 
