@@ -80,8 +80,8 @@ end
 pp2.ChannelIndex       = iChanTal;
 pp2.PSFsigma           = 2.6;  % TIP scale (tips are larger than the PSF)
 pp2.Alpha              = 0.05;
-pp2.TipMaxDistFromBody = 100;
-pp2.MaxTipBaseDist     = 120;
+pp2.TipMaxDistFromBody = 70;
+pp2.MaxTipBaseDist     = 90;
 pp2.BaseInsideBand     = 4;
 pp2.DetectMode         = 'auto';
 pp2.ProcessFrames      = tFrame;
@@ -200,7 +200,6 @@ if strcmp(detectMode,'all') && isempty(pp2.ProcessFrames)
         'FilopodiaForcePackage', 'FilopodiaClassification');
     clsProc.setPara(pp4);
     tic; clsProc.run(); toc
-<<<<<<< HEAD
 end
 
 %% --- P4 QC: tip/shaft/base overlay ---
@@ -323,74 +322,50 @@ if ~isempty(fs)
         xlabel('arc length tip->base (nm)');
         title(sprintf('shaft profile: filopodium %d, frame %d', f, fs(f).frames(j)));
     end
-=======
->>>>>>> f4e07ff9b0b34475d611d757fed0a080b2e6d460
 end
 
-%% --- P4 QC: tip/shaft/base overlay ---
-clsFile = fullfile(clsProc.funParams_.OutputDirectory, 'filoClassification.mat');
-C = load(clsFile);
-nTip = numel(C.filopodia);
-fprintf('Filopodia: %d well-tracked tips | weak-tip %d | background %d\n', ...
-    nTip, sum(strcmp(C.roleByTrack,'weak-tip')), sum(strcmp(C.roleByTrack,'background')));
-
-img = double(MD.channels_(iChanTal).loadImage(tQC));
-figure('Name',sprintf('P4 QC: classification frame %d',tQC),'Color','w');
-imshow(img,[100 500]); axis image off; colormap(gray); hold on;
-visboundaries(seg.bodyMask,'Color','w','LineWidth',0.3);
-% shafts (yellow lines)
-sh = C.shaftByFrame{tQC};
-if ~isempty(sh)
-    plot(sh(:,1), sh(:,2), '-', 'Color', [1 1 0 0.7], 'LineWidth', 1.2);
-end
-% shaft adhesions (yellow dots)
-sa = C.posByFrame.shaft{tQC};
-if ~isempty(sa)
-    plot(sa(:,1), sa(:,2), '.', 'Color', [1 1 0], 'MarkerSize', 10);
-end
-% base (cyan)
-ba = C.posByFrame.base{tQC};
-if ~isempty(ba)
-    plot(ba(:,1), ba(:,2), 'co', 'MarkerSize', 6, 'LineWidth', 1.5);
-end
-% tips (red) last so they're on top
-tp = C.posByFrame.tip{tQC};
-if ~isempty(tp)
-    plot(tp(:,1), tp(:,2), 'ro', 'MarkerSize', 8, 'LineWidth', 1.5);
-end
-title(sprintf('frame %d: %d tips (red) | %d shaft adh (yellow) | %d base (cyan)', ...
-    tQC, size(tp,1), size(sa,1), size(ba,1)));
-
-%% --- P4 QC: L(t) plot ---
-if nTip > 0
-    figure('Name','P4 QC: filopodium length L(t)','Color','w'); hold on;
-    nShow = min(nTip, 10);
-    for i = 1:nShow
-        f = C.filopodia(i);
-        plot(f.frames*MD.timeInterval_, f.L_nm, '-', 'LineWidth', 1.2);
+%% ===================== PROCESS 6: STATISTICS =====================
+if strcmp(detectMode,'all') && isempty(pp2.ProcessFrames)
+    iP6 = MD.getProcessIndex('FilopodiaStatisticsProcess',1,0);
+    if isempty(iP6)
+        MD.addProcess(FilopodiaStatisticsProcess(MD));
+        iP6 = MD.getProcessIndex('FilopodiaStatisticsProcess',1,0);
     end
-    xlabel('time (s)'); ylabel('filopodium length L (nm)');
-    title(sprintf('L(t) for %d of %d filopodia', nShow, nTip));
+    statProc = MD.processes_{iP6};
+    pp6 = statProc.funParams_;
+    pp6.ChannelIndex        = iChanTal;
+    pp6.MinLifetimeForStats = 3;
+    pp6.OutputDirectory     = fullfile(MD.outputDirectory_, ...
+        'FilopodiaForcePackage', 'FilopodiaStatistics');
+    statProc.setPara(pp6);
+    tic; statProc.run(); toc
 end
 
-%% --- P4 diagnostic: tip eligibility ---
-trkFile = fullfile(trkProc.funParams_.OutputDirectory, 'filoTracks.mat');
-T = load(trkFile, 'adhesionTracks'); at = T.adhesionTracks;
-nTr = numel(at); life = [at.lifetime]; maxDist = arrayfun(@(t) max(t.dist), at);
-linFrac = zeros(1,nTr);
-for i = 1:nTr
-    P = at(i).pos; P = P-mean(P,1); Cv = (P'*P)/max(1,size(P,1)-1);
-    ev = sort(eig(Cv),'descend'); linFrac(i) = ev(1)/max(sum(ev),eps);
-end
-pp4 = clsProc.funParams_;
-passLife=life>=pp4.MinTipLifetime; passDist=maxDist>=pp4.MinTipDist;
-passLin=linFrac>=pp4.MinLinearFrac | arrayfun(@(i) sqrt(sum(eig((at(i).pos-mean(at(i).pos))'*(at(i).pos-mean(at(i).pos))/max(1,size(at(i).pos,1)-1))))<3, 1:nTr);
-fprintf('\n=== tip eligibility ===\n');
-fprintf('pass lifetime>=%d: %d/%d\n', pp4.MinTipLifetime, sum(passLife), nTr);
-fprintf('pass maxDist>=%.0f: %d/%d\n', pp4.MinTipDist, sum(passDist), nTr);
-fprintf('pass linearity>=%.2f: %d/%d\n', pp4.MinLinearFrac, sum(passLin), nTr);
-fprintf('pass ALL: %d/%d\n', sum(passLife&passDist&passLin), nTr);
-fprintf('actual tips: %d\n', sum(strcmp(C.roleByTrack,'tip')));
+%% --- P6 QC: pooled distributions + correlations ---
+statFile = fullfile(statProc.funParams_.OutputDirectory, 'filoStats.mat');
+R = load(statFile, 'stats');
+st = R.stats;
+fprintf('Stats: %d filopodia\n', st.nFilopodia);
+fprintf('corr talin~axial r=%.2f | vProt~axial r=%.2f | L~tipForce r=%.2f | talin~force r=%.2f\n', ...
+    st.corr.talin_vs_axial, st.corr.vProt_vs_axial, st.corr.L_vs_tipForce, st.corr.talin_vs_force);
+
+figure('Name','P6 QC: filopodium statistics','Color','w','Position',[40 40 1300 700]);
+subplot(2,3,1); histogram(st.pooled.Lmean_nm,20); xlabel('mean length (nm)'); ylabel('count'); title('length');
+subplot(2,3,2); histogram(st.pooled.lifetime_s,20); xlabel('lifetime (s)'); title('lifetime');
+subplot(2,3,3); histogram(st.pooled.vProt_nmps(isfinite(st.pooled.vProt_nmps)),20);
+xlabel('protrusion speed (nm/s)'); title('elongation speed');
+subplot(2,3,4); histogram(st.pooled.tipForceMean(isfinite(st.pooled.tipForceMean)),20);
+xlabel('tip traction (Pa)'); title('tip traction');
+subplot(2,3,5);
+x = st.pooled.tipTalinMean; y = st.pooled.tipAxialMean; ok = isfinite(x)&isfinite(y);
+scatter(x(ok),y(ok),14,'filled','MarkerFaceAlpha',0.4);
+xlabel('tip talin'); ylabel('tip axial traction (Pa)');
+title(sprintf('talin vs axial (r=%.2f)', st.corr.talin_vs_axial));
+subplot(2,3,6);
+x = st.pooled.vProt_nmps; y = st.pooled.tipAxialMean; ok = isfinite(x)&isfinite(y);
+scatter(x(ok),y(ok),14,'filled','MarkerFaceAlpha',0.4);
+xlabel('protrusion speed (nm/s)'); ylabel('tip axial traction (Pa)');
+title(sprintf('speed vs axial (r=%.2f)', st.corr.vProt_vs_axial));
 
 %% ===================== VIEW IN movieViewer =====================
 movieViewer(MD);
@@ -415,8 +390,4 @@ movieViewer(MD);
 %   pp4.MinTipLifetime = 8;    % longer-lived tracks only
 %   pp4.MinLinearFrac  = 0.9;  % stricter linearity
 %   pp4.BodyMaxAngle   = 45;   % tighter radial constraint
-<<<<<<< HEAD
 %   pp4.ShaftBand      = 5;    % wider shaft adhesion capture
-=======
-%   pp4.ShaftBand      = 5;    % wider shaft adhesion capture
->>>>>>> f4e07ff9b0b34475d611d757fed0a080b2e6d460

@@ -29,7 +29,7 @@ classdef FilopodiaStatisticsProcess < DataProcessingProcess
         end
 
         function varargout = loadChannelOutput(obj, iChan, varargin)
-            outputList = {'filoStats'};
+            outputList = {'stats'};
             ip = inputParser;
             ip.addRequired('iChan', @(x) isscalar(x) && obj.checkChanNum(x));
             ip.addParamValue('output', outputList, @(x) all(ismember(x, outputList)));
@@ -52,19 +52,14 @@ classdef FilopodiaStatisticsProcess < DataProcessingProcess
             ip.parse(owner, varargin{:});
             outputDir = ip.Results.outputDir;
 
-            funParams.OutputDirectory = [outputDir filesep 'FilopodiaForcePackage' filesep 'FilopodiaStatistics'];
-            funParams.ChannelIndex    = 1;
-            funParams.LengthBins      = [];
-            funParams.VelocityBins    = [];
-            funParams.ForceBins       = [];
-            funParams.Correlations    = { ...
-                {'tipTalin',  'tipForceAxial'}, ...
-                {'velocity',  'tipForceAxial'}, ...
-                {'length',    'tipForceMag'} };
-            funParams.DensityRef      = 'perimeter';   % 'perimeter'|'area'
-            funParams.ExportCSV       = true;
-            funParams.MakeFigures     = true;
-            funParams.BatchMode       = false;
+            funParams.OutputDirectory   = [outputDir filesep 'FilopodiaForcePackage' filesep 'FilopodiaStatistics'];
+            funParams.ChannelIndex      = 1;
+            funParams.ClassProcessIndex = [];     % []->find FilopodiaClassificationProcess (P4)
+            funParams.SampleProcessIndex= [];     % []->find FilopodiaSamplingProcess (P5)
+            funParams.MinLifetimeForStats = 3;    % frames; ignore very short filopodia
+            funParams.ExportCSV         = true;
+            funParams.MakeFigures       = true;
+            funParams.BatchMode         = false;
         end
     end
 end

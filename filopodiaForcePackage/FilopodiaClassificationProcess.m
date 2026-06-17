@@ -131,7 +131,7 @@ classdef FilopodiaClassificationProcess < DataProcessingProcess
             funParams.WBaseSep        = 0.7;    % penalty if base is near an already-fixed base
             funParams.MinBaseSep      = 8;      % px; minimum spacing between distinct filopodium bases
             funParams.NeighRadius     = 60;     % px; neighborhood for direction prior
-            % --- straight shaft direction (see straightShaftToBody) ---
+            % --- straight shaft direction (see assembleFilopodiaFrame) ---
             funParams.MaxShaftLen     = 160;    % px; max shaft length (tip reach)
             funParams.SweepRange      = 35;     % deg; direction sweep around ridge/body-ward
             funParams.SweepStep       = 3;      % deg; sweep step

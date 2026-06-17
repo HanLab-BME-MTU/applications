@@ -68,7 +68,7 @@ classdef FilopodiaForcePackage < Package
                  0 1 0 0 0 0;   % 3 Tracking
                  0 0 1 0 0 0;   % 4 Classification
                  0 0 0 1 0 0;   % 5 Sampling (TFM force is cross-package)
-                 0 0 1 1 1 0];  % 6 Statistics
+                 0 0 0 1 1 0];  % 6 Statistics (uses Classification P4 + Sampling P5)
             if nargin < 2, j = 1:size(m, 2); end
             if nargin < 1, i = 1:size(m, 1); end
             m = m(i, j);
