@@ -77,7 +77,7 @@ classdef FilopodiaTrackingProcess < DataProcessingProcess
 
     methods (Static)
         function name = getName(), name = 'Filopodia Tracking'; end
-        function h = GUI(), h = @abstractProcessGUI; end
+        function h = GUI(), h = @filopodiaTrackingProcessGUI; end
 
         function funParams = getDefaultParams(owner, varargin)
             ip = inputParser;

@@ -104,7 +104,7 @@ classdef FilopodiaClassificationProcess < DataProcessingProcess
 
     methods (Static)
         function name = getName(), name = 'Filopodia Classification'; end
-        function h = GUI(), h = @abstractProcessGUI; end
+        function h = GUI(), h = @filopodiaClassificationProcessGUI; end
 
         function funParams = getDefaultParams(owner, varargin)
             ip = inputParser;

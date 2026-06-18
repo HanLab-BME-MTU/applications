@@ -43,7 +43,7 @@ classdef FilopodiaSamplingProcess < DataProcessingProcess
 
     methods (Static)
         function name = getName(), name = 'Filopodia Force / Intensity Sampling'; end
-        function h = GUI(), h = @abstractProcessGUI; end
+        function h = GUI(), h = @filopodiaSamplingProcessGUI; end
 
         function funParams = getDefaultParams(owner, varargin)
             ip = inputParser;

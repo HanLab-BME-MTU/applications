@@ -68,7 +68,7 @@ classdef FilopodiaSegmentationProcess < ImageAnalysisProcess
 
     methods (Static)
         function name = getName(), name = 'Filopodia Segmentation'; end
-        function h = GUI(), h = @abstractProcessGUI; end
+        function h = GUI(), h = @filopodiaSegmentationProcessGUI; end
 
         function funParams = getDefaultParams(owner, varargin)
             ip = inputParser;

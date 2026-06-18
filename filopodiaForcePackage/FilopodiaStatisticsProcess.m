@@ -43,7 +43,7 @@ classdef FilopodiaStatisticsProcess < DataProcessingProcess
 
     methods (Static)
         function name = getName(), name = 'Filopodia Statistics'; end
-        function h = GUI(), h = @abstractProcessGUI; end
+        function h = GUI(), h = @filopodiaStatisticsProcessGUI; end
 
         function funParams = getDefaultParams(owner, varargin)
             ip = inputParser;

@@ -62,7 +62,7 @@ classdef FilopodiaDetectionProcess < DetectionProcess
 
     methods (Static)
         function name = getName(), name = 'Filopodia Detection'; end
-        function h = GUI(), h = @abstractProcessGUI; end   % TODO custom GUI
+        function h = GUI(), h = @filopodiaDetectionProcessGUI; end
 
         function funParams = getDefaultParams(owner, varargin)
             ip = inputParser;
