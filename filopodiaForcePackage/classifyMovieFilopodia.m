@@ -1,21 +1,20 @@
 function classifyMovieFilopodia(movieData)
-%CLASSIFYMOVIEFILOPODIA  Process 4. Assemble filopodia from WELL-TRACKED tips.
+%CLASSIFYMOVIEFILOPODIA  Process 4. Assemble filopodia with temporally
+%consistent directions.
 %
-% Logic (per the tip-centric design):
-%   1. P2 detects all talin adhesions; P3 tracks them.
-%   2. A track is tip-eligible only if it is WELL TRACKED: long lifetime,
-%      linear trajectory, and distal (far from body). These are the adhesions
-%      most likely to be true filopodium tips. Only these drive geometry.
-%   3. For each tip (per frame), one STRAIGHT shaft direction to the body is
-%      found (steerable orientation + collinear consensus); base = where that
-%      line meets the body.
-%   4. Other, less-well-tracked adhesions lying ON that tip->base line
-%      (perpendicular distance < ShaftBand) are assigned as SHAFT adhesions of
-%      that filopodium. Shaft adhesions do NOT get their own direction/base.
-%      The most distal adhesion on a line stays the tip; nearer ones become
-%      its shaft adhesions.
-% Outputs per-frame tip/base/shaft-adhesion positions and shaft lines, plus a
-% per-filopodium struct with length L(t) and velocity.
+% Two-pass approach:
+%   Pass A (track-level, once): Assign ONE shaft direction per well-tracked
+%     tip track, using orientation consensus + shaft adhesion support pooled
+%     across ALL frames of that track. Directions are assigned jointly
+%     (confidence-ordered greedy) so neighboring filopodia stay consistent
+%     and shafts do not cross over the full movie.
+%   Pass B (frame-level): For each frame, project each tip's fixed direction
+%     to the current body mask -> base(t), L(t), shaft adhesions(t).
+%     Base moves slightly as the body mask changes, L(t) = tip-to-base length.
+%
+% This gives temporally continuous L(t) traces (same filopodium, same
+% direction, base only changes as body remodels) suitable for measuring
+% extension/retraction. Cross-frame chaotic direction changes are eliminated.
 % Sangyoon J. Han / 2026
 
 %% process & params
@@ -36,177 +35,189 @@ segOutDir = segProc.funParams_.OutputDirectory;
 
 detFile = detProc.outFilePaths_{1,iChan};
 if isempty(detFile)||exist(detFile,'file')~=2, detFile = fullfile(detProc.funParams_.OutputDirectory,'filoDetection.mat'); end
-Sdet = load(detFile, 'adhesionInfo');
-adhesionInfo = Sdet.adhesionInfo;
+Sdet = load(detFile,'adhesionInfo'); adhesionInfo = Sdet.adhesionInfo;
 
 trkFile = trkProc.outFilePaths_{1,iChan};
 if isempty(trkFile)||exist(trkFile,'file')~=2, trkFile = fullfile(trkProc.funParams_.OutputDirectory,'filoTracks.mat'); end
-Strk = load(trkFile, 'adhesionTracks', 'tracksFinal');
-adhesionTracks = Strk.adhesionTracks;
-tracksFinalAll = Strk.tracksFinal;
+Strk = load(trkFile,'adhesionTracks','tracksFinal');
+adhesionTracks = Strk.adhesionTracks; tracksFinalAll = Strk.tracksFinal;
 
 %% I/O
-inFilePaths = cell(1, numel(movieData.channels_)); inFilePaths{1,iChan} = trkFile;
+inFilePaths = cell(1,numel(movieData.channels_)); inFilePaths{1,iChan} = trkFile;
 proc.setInFilePaths(inFilePaths);
 outDir = p.OutputDirectory; mkClrDir(outDir);
-outFile = fullfile(outDir, 'filoClassification.mat');
-outFilePaths = cell(1, numel(movieData.channels_)); outFilePaths{1,iChan} = outFile;
+outFile = fullfile(outDir,'filoClassification.mat');
+outFilePaths = cell(1,numel(movieData.channels_)); outFilePaths{1,iChan} = outFile;
 proc.setOutFilePaths(outFilePaths);
 
 %% preload P1 maps
 nF = movieData.nFrames_;
-bodyByFrame = cell(1,nF); thetaByFrame = cell(1,nF); distByFrame = cell(1,nF); resByFrame = cell(1,nF);
+bodyByFrame  = cell(1,nF); thetaByFrame = cell(1,nF);
+distByFrame  = cell(1,nF); resByFrame   = cell(1,nF);
 for t = 1:nF
-    fn = fullfile(segOutDir, sprintf('filoSeg_frame_%04d.mat', t));
+    fn = fullfile(segOutDir,sprintf('filoSeg_frame_%04d.mat',t));
     if exist(fn,'file')~=2, continue; end
-    s = load(fn, 'bodyMask','theta','res');
-    bodyByFrame{t}=s.bodyMask; thetaByFrame{t}=s.theta; distByFrame{t}=bwdist(s.bodyMask); resByFrame{t}=s.res;
+    s = load(fn,'bodyMask','theta','res');
+    bodyByFrame{t}=s.bodyMask; thetaByFrame{t}=s.theta;
+    distByFrame{t}=bwdist(s.bodyMask); resByFrame{t}=s.res;
 end
 
-%% (A) per-track features -> tip eligibility (WELL TRACKED)
+%% tip eligibility
 nTr = numel(adhesionTracks);
 minLife   = getfielddef(p,'MinTipLifetime',5);
-linFrac   = getfielddef(p,'MinLinearFrac',0.85);   % fraction of trajectory variance on 1 axis
-minSpread = getfielddef(p,'MinTrajSpread',3);       % px; below this a track is "stationary" (linearity n/a)
-minTipDist= getfielddef(p,'MinTipDist',6);          % px; tip must reach at least this far from body
-
+linFrac   = getfielddef(p,'MinLinearFrac',0.85);
+minSpread = getfielddef(p,'MinTrajSpread',3);
+minTipDist= getfielddef(p,'MinTipDist',6);
 tipEligible = false(1,nTr);
 for i = 1:nTr
     tr = adhesionTracks(i);
-    if numel(tr.frames) < minLife, continue; end
-    if max(tr.dist) < minTipDist, continue; end
-    % linearity of the trajectory (PCA): elongated-along-a-line OR ~stationary
-    P = tr.pos; P = P - mean(P,1);
-    C = (P'*P)/max(1,size(P,1)-1);
-    ev = sort(eig(C),'descend');
-    spread = sqrt(sum(ev));
-    frac = ev(1)/max(sum(ev),eps);
-    if spread < minSpread || frac >= linFrac
+    if numel(tr.frames)<minLife || max(tr.dist)<minTipDist, continue; end
+    P2 = tr.pos-mean(tr.pos,1);
+    ev = sort(eig((P2'*P2)/max(1,size(P2,1)-1)),'descend');
+    if sqrt(sum(ev))<minSpread || ev(1)/max(sum(ev),eps)>=linFrac
         tipEligible(i) = true;
     end
 end
+tipIdx = find(tipEligible);
+tipTracks = adhesionTracks(tipIdx);
 
-% map detected adhesions per frame -> owning track id and eligibility
-trkOfAdh = cell(1,nF);      % trkOfAdh{t}(k) = track index owning adhesionInfo{t}(k), or 0
+%% trkOfAdh: adhesion k at frame t -> track index (into adhesionTracks)
+trkOfAdh = cell(1,nF);
 for t=1:nF
-    if isempty(adhesionInfo{t}), trkOfAdh{t}=zeros(1,0); else, trkOfAdh{t}=zeros(1,numel(adhesionInfo{t})); end
+    if isempty(adhesionInfo{t}), trkOfAdh{t}=zeros(1,0);
+    else, trkOfAdh{t}=zeros(1,numel(adhesionInfo{t})); end
 end
-for i = 1:nTr
-    tr = adhesionTracks(i);
-    for j = 1:numel(tr.frames)
-        t = tr.frames(j); k = tr.featIdx(j);
-        if t>=1 && t<=nF && k>=1 && k<=numel(trkOfAdh{t}), trkOfAdh{t}(k) = i; end
+for i=1:nTr
+    tr=adhesionTracks(i);
+    for j=1:numel(tr.frames)
+        t=tr.frames(j); k=tr.featIdx(j);
+        if t>=1&&t<=nF&&k>=1&&k<=numel(trkOfAdh{t}), trkOfAdh{t}(k)=i; end
     end
 end
 
-%% (B) per-frame assembly: tips drive geometry; nearby adhesions -> shaft
+%% PASS A: assign ONE direction per tip track (all frames jointly)
+fprintf('Pass A: assigning directions to %d tip tracks...\n', numel(tipTracks));
+progressText(0,'Pass A: direction assignment','Filopodia P4 pass A');
+trackDir = assignTrackDirections(tipTracks, adhesionInfo, trkOfAdh, ...
+    bodyByFrame, thetaByFrame, distByFrame, resByFrame, p);
+progressText(1,'Pass A: direction assignment');
+fprintf('  -> %d filopodia assigned directions\n', numel(trackDir));
+
+%% PASS B: per-frame projection -> base(t), L(t), shaft adhesions(t)
+dt  = movieData.timeInterval_; if isempty(dt), dt=1; end
+pix = movieData.pixelSize_;    if isempty(pix), pix=1; end
+sw  = max(1,round(getfielddef(p,'VelSmoothWin',3)));
+reachFrac = getfielddef(p,'MinReachFrac',0.5);
+band      = getfielddef(p,'ShaftBand',4);
+
 posByFrame.tip   = cell(1,nF);
 posByFrame.base  = cell(1,nF);
-posByFrame.shaft = cell(1,nF);    % shaft adhesions
-shaftByFrame     = cell(1,nF);    % shaft lines (polylines, NaN separated)
-roleByAdh        = cell(1,nF);    % per detected adhesion role at frame t
-% per-track accumulation for L(t)
-tipFrames = cell(1,nTr); tipLen = cell(1,nTr); tipPos = cell(1,nTr); tipBase = cell(1,nTr);
-
-progressText(0,'Filopodia assembly','Filopodia assembly');
-for t = 1:nF
-    posByFrame.tip{t}=zeros(0,2); posByFrame.base{t}=zeros(0,2); posByFrame.shaft{t}=zeros(0,2);
-    shaftByFrame{t}=zeros(0,2);
-    a = adhesionInfo{t};
-    if isempty(a) || isempty(bodyByFrame{t}), progressText(t/nF,'Filopodia assembly'); continue; end
-    A = cat(1, a.pos); distA = [a.dist];
-    n = size(A,1);
-    roleByAdh{t} = repmat({'none'}, 1, n);
-
-    elig = find(arrayfun(@(k) trkOfAdh{t}(k)>0 && tipEligible(trkOfAdh{t}(k)), 1:n));
-    if isempty(elig), progressText(t/nF,'Filopodia assembly'); continue; end
-
-    % joint assembly: confidence-ordered greedy with neighbor prior + no-overlap
-    fil = assembleFilopodiaFrame(elig(:), A, distA(:), thetaByFrame{t}, ...
-        bodyByFrame{t}, distByFrame{t}, resByFrame{t}, p);
-
-    % map assembled filopodia back to adhesions/tracks
-    for f = 1:numel(fil)
-        tipxy = fil(f).tipPos;
-        % find the adhesion index kk that equals this tip
-        [~, kk] = min((A(:,1)-tipxy(1)).^2 + (A(:,2)-tipxy(2)).^2);
-        roleByAdh{t}{kk} = 'tip';
-        shIdx = fil(f).shaftIdx;
-        for q = shIdx(:)', roleByAdh{t}{q} = 'shaft'; end
-        posByFrame.tip{t}(end+1,:)  = tipxy;
-        posByFrame.base{t}(end+1,:) = fil(f).base;
-        if ~isempty(shIdx), posByFrame.shaft{t} = [posByFrame.shaft{t}; A(shIdx,:)]; end
-        nstep = max(2, round(fil(f).len));
-        ss = linspace(0, fil(f).len, nstep)';
-        line = [tipxy(1)+ss*cos(fil(f).ang), tipxy(2)+ss*sin(fil(f).ang)];
-        shaftByFrame{t} = [shaftByFrame{t}; line; nan(1,2)];
-
-        it = trkOfAdh{t}(kk);
-        if it>0
-            tipFrames{it}(end+1) = t;
-            tipLen{it}(end+1)    = fil(f).len;
-            tipPos{it}(end+1,:)  = tipxy;
-            tipBase{it}(end+1,:) = fil(f).base;
-        end
-    end
-    progressText(t/nF,'Filopodia assembly');
+posByFrame.shaft = cell(1,nF);
+shaftByFrame     = cell(1,nF);
+for t=1:nF
+    posByFrame.tip{t}=zeros(0,2); posByFrame.base{t}=zeros(0,2);
+    posByFrame.shaft{t}=zeros(0,2); shaftByFrame{t}=zeros(0,2);
 end
 
-%% (C) per-filopodium struct (accepted tip tracks) + roleByTrack
-dt  = movieData.timeInterval_;  if isempty(dt),  dt  = 1; end
-pix = movieData.pixelSize_;     if isempty(pix), pix = 1; end
-sw  = max(1, round(getfielddef(p,'VelSmoothWin',3)));
-reachFrac = getfielddef(p,'MinReachFrac',0.5);
+nFil = numel(trackDir);
+filTipFrames = cell(1,nFil); filTipLen = cell(1,nFil);
+filTipPos = cell(1,nFil);    filBase   = cell(1,nFil);
+H = size(bodyByFrame{find(~cellfun(@isempty,bodyByFrame),1)},1);
+W = size(bodyByFrame{find(~cellfun(@isempty,bodyByFrame),1)},2);
+maxLen = getfielddef(p,'MaxShaftLen',160);
 
+progressText(0,'Pass B: per-frame projection','Filopodia P4 pass B');
+for f = 1:nFil
+    td = trackDir(f);
+    tr = tipTracks(td.trackIdx);
+    ang = td.ang;
+    nreach = 0;
+    for j = 1:numel(tr.frames)
+        t = tr.frames(j);
+        if isempty(bodyByFrame{t}), continue; end
+        x0 = tr.pos(j,1); y0 = tr.pos(j,2);
+        % shoot ray at fixed angle, find body
+        base=[]; Lb=NaN;
+        for s = 1:1.5:maxLen
+            x=x0+s*cos(ang); y=y0+s*sin(ang);
+            ix=round(x); iy=round(y);
+            if ix<1||ix>W||iy<1||iy>H, break; end
+            if bodyByFrame{t}(iy,ix), base=[x y]; Lb=s; break; end
+        end
+        if isempty(base), continue; end
+        nreach = nreach+1;
+        % shaft adhesions: other adhesions on the ray, nearer body
+        adh = adhesionInfo{t};
+        shIdx = [];
+        if ~isempty(adh)
+            Af=cat(1,adh.pos); dAf=[adh.dist];
+            di=distByFrame{t}(min(max(round(y0),1),H),min(max(round(x0),1),W));
+            u=[cos(ang),sin(ang)]; rel=Af-[x0,y0];
+            proj=rel(:,1)*u(1)+rel(:,2)*u(2);
+            perp=abs(-rel(:,1)*u(2)+rel(:,2)*u(1));
+            onl=(perp<band)&(proj>1)&(proj<Lb)&(dAf(:)<di);
+            shIdx=find(onl)';
+        end
+        filTipFrames{f}(end+1)=t; filTipLen{f}(end+1)=Lb;
+        filTipPos{f}(end+1,:)=[x0,y0]; filBase{f}(end+1,:)=base;
+        posByFrame.tip{t}(end+1,:)=[x0,y0];
+        posByFrame.base{t}(end+1,:)=base;
+        if ~isempty(shIdx)
+            posByFrame.shaft{t}=[posByFrame.shaft{t}; Af(shIdx,:)];
+        end
+        nstep=max(2,round(Lb)); ss=linspace(0,Lb,nstep)';
+        line=[x0+ss*cos(ang), y0+ss*sin(ang)];
+        shaftByFrame{t}=[shaftByFrame{t}; line; nan(1,2)];
+    end
+    trackDir(f).nReach = nreach;
+    trackDir(f).reachFrac = nreach/max(1,numel(tr.frames));
+    progressText(f/nFil,'Pass B: per-frame projection');
+end
+
+%% build filopodia struct (accepted tracks)
 roleByTrack = repmat({'background'},1,nTr);
 filopodia = struct('tipTrackId',{},'frames',{},'tipPos',{},'basePos',{}, ...
-    'L',{},'L_nm',{},'velocity_nmps',{},'lifetime',{});
-for i = 1:nTr
-    if ~tipEligible(i) || isempty(tipFrames{i}), continue; end
-    % accepted if it acted as a tip (reached body) in enough of its frames
-    if numel(tipFrames{i}) < reachFrac * numel(adhesionTracks(i).frames), 
-        roleByTrack{i} = 'weak-tip'; continue;
-    end
-    roleByTrack{i} = 'tip';
-    L = tipLen{i}; Lsm = smoothLocal(L, sw);
+    'L',{},'L_nm',{},'velocity_nmps',{},'lifetime',{},'ang',{});
+for f = 1:nFil
+    td = trackDir(f);
+    if isempty(filTipFrames{f}) || td.reachFrac < reachFrac, continue; end
+    globalIdx = tipIdx(td.trackIdx);
+    roleByTrack{globalIdx} = 'tip';
+    L = filTipLen{f}; Lsm = smoothLocal(L,sw);
     n = numel(filopodia)+1;
-    filopodia(n).tipTrackId    = adhesionTracks(i).trackId;
-    filopodia(n).frames        = tipFrames{i};
-    filopodia(n).tipPos        = tipPos{i};
-    filopodia(n).basePos       = tipBase{i};
+    filopodia(n).tipTrackId    = adhesionTracks(globalIdx).trackId;
+    filopodia(n).frames        = filTipFrames{f};
+    filopodia(n).tipPos        = filTipPos{f};
+    filopodia(n).basePos       = filBase{f};
     filopodia(n).L             = L;
-    filopodia(n).L_nm          = L * pix;
-    filopodia(n).velocity_nmps = gradient(Lsm)/dt * pix;
-    filopodia(n).lifetime      = numel(tipFrames{i});
+    filopodia(n).L_nm          = L*pix;
+    filopodia(n).velocity_nmps = gradient(Lsm)/dt*pix;
+    filopodia(n).lifetime      = numel(filTipFrames{f});
+    filopodia(n).ang            = td.ang;
 end
 
 % tip tracks (u-track format) for TracksDisplay
-tipTrkIdx = find(strcmp(roleByTrack,'tip'));
-if ~isempty(tipTrkIdx) && ~isempty(tracksFinalAll)
-    safe = tipTrkIdx(tipTrkIdx <= numel(tracksFinalAll));
-    tipTracks = tracksFinalAll(safe);
-else
-    tipTracks = tracksFinalAll([]);
-end
+acceptIdx = find(strcmp(roleByTrack,'tip'));
+if ~isempty(acceptIdx)&&~isempty(tracksFinalAll)
+    safe=acceptIdx(acceptIdx<=numel(tracksFinalAll));
+    tipTrks=tracksFinalAll(safe);
+else, tipTrks=tracksFinalAll([]); end
 
-save(outFile, 'filopodia','tipTracks','roleByTrack','posByFrame','shaftByFrame','roleByAdh','-v7.3');
-progressText(1,'Filopodia assembly');
-fprintf('Assembly: %d filopodia (well-tracked tips) of %d tracks; %d tip-eligible.\n', ...
-    numel(filopodia), nTr, nnz(tipEligible));
+tipTracks = tipTrks; %#ok
+save(outFile,'filopodia','tipTracks','roleByTrack','posByFrame','shaftByFrame','-v7.3');
+fprintf('Classification done: %d filopodia (of %d tip-eligible tracks).\n', numel(filopodia), numel(tipIdx));
 end
 
 % ===================================================================
-function v = getfielddef(s, name, default)
-if isfield(s, name) && ~isempty(s.(name)), v = s.(name); else, v = default; end
+function v = getfielddef(s,name,default)
+if isfield(s,name)&&~isempty(s.(name)), v=s.(name); else, v=default; end
 end
-
-% ===================================================================
-function y = smoothLocal(x, w)
-if w <= 1 || numel(x) < 3, y = x; return; end
-k = ones(1, w) / w; y = conv(x, k, 'same');
-h = floor(w/2);
-for i = 1:min(h, numel(x))
-    y(i) = mean(x(1:min(numel(x), i+h)));
-    y(end-i+1) = mean(x(max(1,end-i+1-h):end));
+function y = smoothLocal(x,w)
+if w<=1||numel(x)<3, y=x; return; end
+k=ones(1,w)/w; y=conv(x,k,'same');
+h=floor(w/2);
+for i=1:min(h,numel(x))
+    y(i)=mean(x(1:min(numel(x),i+h)));
+    y(end-i+1)=mean(x(max(1,end-i+1-h):end));
 end
 end
