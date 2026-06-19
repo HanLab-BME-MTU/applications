@@ -1,4 +1,4 @@
-function filopodiaDetectionProcessGUI(varargin)
+function varargout = filopodiaDetectionProcessGUI(varargin)
 %FILPODIADETECTIONPROCESSGUI  Settings GUI for Process 2 (Detection).
 ip=inputParser; ip.addOptional('mainFig',[],@ishandle);
 ip.addOptional('procID',[],@isscalar);
@@ -10,6 +10,7 @@ pd(2) = def('Alpha','Detection alpha','edit','Significance threshold for pointSo
 pd(3) = def('TipMaxDistFromBody','Max tip distance from body (px)','edit','Adhesions farther than this are discarded');
 pd(4) = def('BaseInsideBand','Base inside-body band (px)','edit','Include adhesions this far inside the body edge');
 pd(5) = def('UseRidgeTips','Use ridge-tip augmentation','checkbox','Add skeleton endpoints as tip candidates (usually OFF)');
-filoGUI_helper('init', mainFig, procID, 'FilopodiaDetectionProcess', pd);
+fig = filoGUI_helper('init', mainFig, procID, 'FilopodiaDetectionProcess', pd);
+if nargout>0, varargout{1}=fig; end
 end
 function d = def(name,label,type,tip), d=struct('name',name,'label',label,'type',type,'tooltip',tip); end

@@ -25,7 +25,7 @@ end
 end
 
 % ===================================================================
-function ud = initGUI(mainFig, procID, procClass, paramDefs)
+function fig = initGUI(mainFig, procID, procClass, paramDefs)
 % parse mainFig
 ud_main = get(mainFig, 'UserData');
 if isfield(ud_main,'MD'), MD = ud_main.MD(ud_main.id); else, MD = []; end

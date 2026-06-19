@@ -72,6 +72,28 @@ for i = 1:numel(MD.processes_)
         corrected = corrected + 1;
         fprintf('  Updated params/path for %s\n', class(proc));
     end
+
+    % (c) restore outFilePaths_ so packageGUI shows completion status
+    outFileMap = struct( ...
+        'FilopodiaSegmentationProcess',   '', ...
+        'FilopodiaDetectionProcess',      'filoDetection.mat', ...
+        'FilopodiaTrackingProcess',       'filoTracks.mat', ...
+        'FilopodiaClassificationProcess', 'filoClassification.mat', ...
+        'FilopodiaSamplingProcess',       'filoSamples.mat', ...
+        'FilopodiaStatisticsProcess',     'filoStats.mat');
+    cls = class(proc);
+    if isfield(outFileMap, cls) && ~isempty(outFileMap.(cls))
+        outFile = fullfile(proc.funParams_.OutputDirectory, outFileMap.(cls));
+        if exist(outFile,'file')==2
+            try
+                nChan = numel(MD.channels_);
+                outPaths = cell(1, nChan);
+                outPaths{1,1} = outFile;
+                proc.setOutFilePaths(outPaths);
+                fprintf('  Restored outFilePaths for %s\n', cls);
+            catch, end
+        end
+    end
 end
 if corrected > 0
     MD.save();

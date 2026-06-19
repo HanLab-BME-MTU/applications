@@ -1,4 +1,4 @@
-function filopodiaClassificationProcessGUI(varargin)
+function varargout = filopodiaClassificationProcessGUI(varargin)
 %FILPODIACLASSIFICATIONPROCESSGUI  Settings GUI for Process 4 (Classification).
 ip=inputParser; ip.addOptional('mainFig',[],@ishandle);
 ip.addOptional('procID',[],@isscalar);
@@ -18,6 +18,7 @@ pd(10) = def('WOverlap','Shaft overlap penalty (WOverlap)','edit','Penalty if sh
 pd(11) = def('WBaseSep','Base separation penalty (WBaseSep)','edit','Penalty if base is near an already-fixed base');
 pd(12) = def('MinBaseSep','Min base separation (px)','edit','Bases closer than this get the WBaseSep penalty');
 pd(13) = def('MinReachFrac','Min body-reach fraction','edit','Accept tip track only if it reaches the body in >= this fraction of frames');
-filoGUI_helper('init', mainFig, procID, 'FilopodiaClassificationProcess', pd);
+fig = filoGUI_helper('init', mainFig, procID, 'FilopodiaClassificationProcess', pd);
+if nargout>0, varargout{1}=fig; end
 end
 function d = def(name,label,type,tip), d=struct('name',name,'label',label,'type',type,'tooltip',tip); end
