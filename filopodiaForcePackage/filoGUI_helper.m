@@ -26,15 +26,17 @@ end
 
 % ===================================================================
 function fig = initGUI(mainFig, procID, procClass, paramDefs)
-% parse mainFig
+% parse mainFig - get MD and package from packageGUI's userData
 ud_main = get(mainFig, 'UserData');
-if isfield(ud_main,'MD'), MD = ud_main.MD(ud_main.id); else, MD = []; end
 pkg = ud_main.crtPackage;
+MD  = pkg.getOwner();
+
+% get existing process from package slot, or create with correct constructor
 proc = pkg.getProcess(procID);
 if isempty(proc)
-    % create with defaults
-    constr = pkg.getDefaultProcessConstructors(procID);
-    proc = constr{1}(MD);
+    % create using the package's own constructor (handles outputDir correctly)
+    constrs = pkg.getDefaultProcessConstructors(procID);
+    proc = constrs{1}(MD, MD.outputDirectory_);
     MD.addProcess(proc);
 end
 funParams = proc.funParams_;
