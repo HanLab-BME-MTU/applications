@@ -75,7 +75,7 @@ classdef FilopodiaDetectionProcess < DetectionProcess
             funParams.ChannelIndex    = 1;          % talin-GFP
             funParams.SegProcessIndex = [];         % []->find FilopodiaSegmentationProcess
             % pointSourceDetection
-            funParams.PSFsigma        = 2.6;        % px; TIP scale (tips are larger than the PSF)
+            funParams.PSFsigma        = 2.1;        % px; tip scale; lower = more sensitive, better LoG match for smaller tips
             funParams.Alpha           = 0.05;
             funParams.ConfRadius      = [];         % default 2*sigma
             funParams.WindowSize      = [];         % default 4*sigma

@@ -118,7 +118,7 @@ end
 function [mag, axial, lateral] = sampleForce(pt, outDir, Fx, Fy, haveF, t)
 mag=NaN; axial=NaN; lateral=NaN;
 if t<1 || t>numel(haveF) || ~haveF(t), return; end
-fx = Fx{t}(pt(1),pt(2)); fy = Fy{t}(pt(1),pt(2));
+fx = Fx{t}(double(pt(1)),double(pt(2))); fy = Fy{t}(double(pt(1)),double(pt(2)));
 if isnan(fx)||isnan(fy), return; end
 mag = hypot(fx,fy);
 axial   = fx*outDir(1) + fy*outDir(2);          % + = outward (toward tip)

@@ -1,5 +1,5 @@
 function trackDir = assignTrackDirections(tipTracks, adhesionInfo, trkOfAdh, ...
-    bodyByFrame, thetaByFrame, distByFrame, resByFrame, p)
+    bodyByFrame, thetaByFrame, distByFrame, resByFrame, shaftMaskByFrame, p)
 %ASSIGNTRACKDIRECTIONS  Assign ONE shaft direction per tip track, using all
 %frames jointly. Called once (not per frame) in P4.
 %
@@ -23,11 +23,11 @@ function trackDir = assignTrackDirections(tipTracks, adhesionInfo, trkOfAdh, ...
 maxLen   = gf(p,'MaxShaftLen',160);
 sweepRng = gf(p,'SweepRange',40);
 sweepStp = gf(p,'SweepStep',2);
-bodyMax  = gf(p,'BodyMaxAngle',55);
+bodyMax  = gf(p,'BodyMaxAngle',75);  % wider: allows near-tangential filopodia
 band     = gf(p,'ShaftBand',4);
-wShaft   = gf(p,'WShaft',0.5);
+wShaft   = gf(p,'WShaft',0.0);
 wLen     = gf(p,'WLen',0.25);
-wPrior   = gf(p,'WPrior',0.6);
+wPrior   = gf(p,'WPrior',0.0);
 wOverlap = gf(p,'WOverlap',0.8);
 wBaseSep = gf(p,'WBaseSep',0.7);
 minSep   = gf(p,'MinBaseSep',8);
@@ -49,17 +49,83 @@ for i = 1:nT
     tipXY = tr.pos;    % Nframes x 2 [x y]
     frames = tr.frames;
     % --- candidate directions: seed from time-averaged theta at tip ---
-    thAll = zeros(numel(frames),1);
+    % --- seed direction: sample theta ONLY on actual ridge/shaft pixels
+    %     near the tip. Walk bodyward from the tip for SEED_LEN px and
+    %     collect shaftMask pixels within SEED_W px of that ray. This
+    %     samples the connected shaft, not background noise.
+    thAll  = zeros(numel(frames),1);
     resAll = zeros(numel(frames),1);
-    gXAll = zeros(numel(frames),1); gYAll = zeros(numel(frames),1);
+    gXAll  = zeros(numel(frames),1); gYAll = zeros(numel(frames),1);
+    SEED_LEN = 20;   % px; how far bodyward to walk for shaft theta
+    SEED_W   = 3;    % px; perpendicular band around the bodyward ray
+    RES_THR_FRAC = 0.3;  % only use pixels above this fraction of local max res
     for j = 1:numel(frames)
         t = frames(j);
         if t<1||t>nF||isempty(thetaByFrame{t}), continue; end
-        ix = min(max(round(tipXY(j,1)),1),W); iy = min(max(round(tipXY(j,2)),1),H);
-        thAll(j)  = thetaByFrame{t}(iy,ix);
-        resAll(j) = resByFrame{t}(iy,ix);
-        [gX,gY] = gradient(distByFrame{t});
-        gXAll(j) = gX(iy,ix); gYAll(j) = gY(iy,ix);
+        ix0_ = min(max(round(tipXY(j,1)),1),W);
+        iy0_ = min(max(round(tipXY(j,2)),1),H);
+        [gX_,gY_] = gradient(distByFrame{t});
+        gXAll(j) = gX_(iy0_,ix0_); gYAll(j) = gY_(iy0_,ix0_);
+        % bodyward unit vector at tip
+        bvx = -gX_(iy0_,ix0_); bvy = -gY_(iy0_,ix0_);
+        bvn = hypot(bvx,bvy); if bvn<eps, bvx=0; bvy=1; else bvx=bvx/bvn; bvy=bvy/bvn; end
+        % collect pixels along the bodyward ray within a band
+        sm = shaftMaskByFrame{t};
+        th = thetaByFrame{t}; r_ = resByFrame{t};
+        res_local_max = max(r_(max(1,iy0_-SEED_LEN):min(H,iy0_+SEED_LEN), ...
+                               max(1,ix0_-SEED_LEN):min(W,ix0_+SEED_LEN)),[],'all');
+        if res_local_max<eps, res_local_max=1; end
+        sinW=[]; cosW=[]; wArr=[];
+        for s = 1:SEED_LEN
+            cx = ix0_+s*bvx; cy = iy0_+s*bvy;
+            icx=round(cx); icy=round(cy);
+            if icx<1||icx>W||icy<1||icy>H, break; end
+            if bodyByFrame{t}(icy,icx), break; end  % hit body
+            % check band around this point
+            for dy=-SEED_W:SEED_W
+                for dx=-SEED_W:SEED_W
+                    px=icx+dx; py=icy+dy;
+                    if px<1||px>W||py<1||py>H, continue; end
+                    if ~sm(py,px), continue; end       % must be shaft pixel
+                    rv=r_(py,px);
+                    if rv<RES_THR_FRAC*res_local_max, continue; end  % skip weak
+                    sinW(end+1)=sin(2*th(py,px));  %#ok<AGROW>
+                    cosW(end+1)=cos(2*th(py,px));  %#ok<AGROW>
+                    wArr(end+1)=rv;                %#ok<AGROW>
+                end
+            end
+        end
+        if numel(wArr)>=2
+            wArr=wArr/sum(wArr);
+            % circular mean via double-angle trick (handles mod-pi ambiguity)
+            raw = atan2(sum(wArr.*sinW),sum(wArr.*cosW))/2;
+            thAll(j) = raw;  % already in [-pi/2, pi/2]
+            resAll(j) = sum(wArr.*wArr)*r_(iy0_,ix0_);
+        else
+            % fallback: no shaft pixels found along bodyward ray.
+            % Use a wider circular neighborhood (radius 8px), res-weighted,
+            % outside body only. Better than single-pixel theta at tip center.
+            R_fb = 8;
+            ys_fb=max(1,iy0_-R_fb):min(H,iy0_+R_fb);
+            xs_fb=max(1,ix0_-R_fb):min(W,ix0_+R_fb);
+            th_fb=thetaByFrame{t}(ys_fb,xs_fb);
+            r_fb=resByFrame{t}(ys_fb,xs_fb);
+            bm_fb=bodyByFrame{t}(ys_fb,xs_fb);
+            % circular distance mask
+            [dxg,dyg]=meshgrid(xs_fb-ix0_,ys_fb-iy0_);
+            circ=(dxg.^2+dyg.^2)<=R_fb^2;
+            w_fb=r_fb.*~bm_fb.*circ;
+            rthr=max(r_fb(:))*0.25;
+            w_fb=w_fb.*(r_fb>=rthr); sw=sum(w_fb(:));
+            if sw>eps
+                w_fb=w_fb/sw;
+                thAll(j)=0.5*atan2(sum(w_fb(:).*sin(2*th_fb(:))), ...
+                                    sum(w_fb(:).*cos(2*th_fb(:))));
+            else
+                thAll(j)=thetaByFrame{t}(iy0_,ix0_);
+            end
+            resAll(j)=resByFrame{t}(iy0_,ix0_);
+        end
     end
     % mean body-ward direction across frames
     bwX = mean(-gXAll); bwY = mean(-gYAll);
@@ -67,8 +133,10 @@ for i = 1:nT
     % circular mean of theta (pick bodyward sense)
     th_mean_s = mean(sin(thAll)); th_mean_c = mean(cos(thAll));
     th_mean = atan2(th_mean_s,th_mean_c);
-    for ang = (th_mean:pi:th_mean+pi)
-        if cos(ang-bAng)>0, th_seed = ang; break; end
+    % pick the sense of th_mean that points bodyward
+    % theta is mod pi, so two senses: th_mean and th_mean+pi
+    for ang = [th_mean, th_mean+pi, th_mean-pi]
+        if cos(ang-bAng) > 0, th_seed = ang; break; end
     end
     if ~exist('th_seed','var'), th_seed = bAng; end
     seeds = [th_seed, bAng];

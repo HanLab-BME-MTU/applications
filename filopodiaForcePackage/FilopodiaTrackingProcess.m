@@ -89,9 +89,9 @@ classdef FilopodiaTrackingProcess < DataProcessingProcess
             funParams.OutputDirectory = [outputDir filesep 'FilopodiaForcePackage' filesep 'FilopodiaTracking'];
             funParams.ChannelIndex    = 1;
             funParams.DetProcessIndex = [];      % []->find FilopodiaDetectionProcess
-            funParams.MaxLinkDist     = 10;      % px / frame (tip)
+            funParams.MaxLinkDist     = 8;       % px / frame; small: generous detection keeps tips close frame-to-frame
             funParams.LinkUseBase     = true;
-            funParams.MaxGapFrames    = 2;
+            funParams.MaxGapFrames    = 3;       % frames; bridge short disappearances
             funParams.MinTrackLength  = 3;       % frames
             funParams.VelSmoothWin    = 3;       % frames
             funParams.PauseThreshVel  = [];      % length/frame; []->auto

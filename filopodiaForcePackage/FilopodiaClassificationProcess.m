@@ -124,9 +124,9 @@ classdef FilopodiaClassificationProcess < DataProcessingProcess
             funParams.MinTipDist      = 6;      % px; tip must reach at least this far from body
             % --- shaft assignment & joint assembly ---
             funParams.ShaftBand       = 4;      % px; adhesion within this of tip->base line = shaft adhesion
-            funParams.WShaft          = 0.5;    % reward for passing many shaft adhesions (deep base)
+            funParams.WShaft          = 0.0;    % 0 = steerable only; raise to reward passing shaft adhesions (use as tie-breaker)
             funParams.WLen            = 0.25;   % small length penalty (smaller -> deeper base)
-            funParams.WPrior          = 0.6;    % neighbor-direction consistency / angle continuity
+            funParams.WPrior          = 0.0;    % 0 = no neighbor prior; raise for smoother angular field across filopodia
             funParams.WOverlap        = 0.8;    % penalty if shaft crosses an already-fixed shaft
             funParams.WBaseSep        = 0.7;    % penalty if base is near an already-fixed base
             funParams.MinBaseSep      = 8;      % px; minimum spacing between distinct filopodium bases
@@ -135,7 +135,7 @@ classdef FilopodiaClassificationProcess < DataProcessingProcess
             funParams.MaxShaftLen     = 160;    % px; max shaft length (tip reach)
             funParams.SweepRange      = 35;     % deg; direction sweep around ridge/body-ward
             funParams.SweepStep       = 3;      % deg; sweep step
-            funParams.BodyMaxAngle    = 60;     % deg; shaft must be within this of body-ward
+            funParams.BodyMaxAngle    = 75;     % deg; shaft must be within this of body-ward (wider for tangential filopodia)
             funParams.AlignBand       = 3.5;    % px; perpendicular band for collinear tip support
             funParams.AlignWeight     = 0.12;   % weight of collinear support in direction score
             funParams.LenPenalty      = 0.6;    % penalty on shaft length (prefer radial)

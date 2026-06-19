@@ -105,6 +105,13 @@ bodyMask = bwareaopen(bodyMask, p.BodyMinArea);
 [res, theta, nms, scaleMap] = multiscaleSteerableDetector(img, ...
     p.SteerableOrder, p.SigmaArray);
 
+% steerableDetector returns theta as the ridge NORMAL direction (the
+% orientation of maximum gradient, perpendicular to the structure). For
+% filopodia we want the ridge AXIS (the direction the filopodium runs), so
+% rotate by 90 deg and wrap to (-pi/2, pi/2]. All downstream code (P4
+% direction assignment, QC) then uses theta = filopodium axis directly.
+theta = mod(theta + pi/2 + pi/2, pi) - pi/2;
+
 % --- hysteresis shaft mask ---
 bg = res(~bodyMask);
 hi = p.HysteresisHigh; lo = p.HysteresisLow;

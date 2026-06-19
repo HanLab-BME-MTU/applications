@@ -54,12 +54,20 @@ proc.setOutFilePaths(outFilePaths);
 nF = movieData.nFrames_;
 bodyByFrame  = cell(1,nF); thetaByFrame = cell(1,nF);
 distByFrame  = cell(1,nF); resByFrame   = cell(1,nF);
+shaftByFrame_ = cell(1,nF);   % P1 shaftMask (ridge binary)
 for t = 1:nF
     fn = fullfile(segOutDir,sprintf('filoSeg_frame_%04d.mat',t));
     if exist(fn,'file')~=2, continue; end
-    s = load(fn,'bodyMask','theta','res');
+    s = load(fn,'bodyMask','theta','res','shaftMask');
     bodyByFrame{t}=s.bodyMask; thetaByFrame{t}=s.theta;
     distByFrame{t}=bwdist(s.bodyMask); resByFrame{t}=s.res;
+    if isfield(s,'shaftMask')
+        shaftByFrame_{t} = s.shaftMask & ~s.bodyMask;
+    else
+        % fallback: threshold res at median+1*mad
+        rv = s.res(~s.bodyMask); thr = median(rv)+1.4826*mad(rv,1);
+        shaftByFrame_{t} = s.res > thr & ~s.bodyMask;
+    end
 end
 
 %% tip eligibility
@@ -99,7 +107,7 @@ end
 fprintf('Pass A: assigning directions to %d tip tracks...\n', numel(tipTracks));
 progressText(0,'Pass A: direction assignment','Filopodia P4 pass A');
 trackDir = assignTrackDirections(tipTracks, adhesionInfo, trkOfAdh, ...
-    bodyByFrame, thetaByFrame, distByFrame, resByFrame, p);
+    bodyByFrame, thetaByFrame, distByFrame, resByFrame, shaftByFrame_, p);
 progressText(1,'Pass A: direction assignment');
 fprintf('  -> %d filopodia assigned directions\n', numel(trackDir));
 
