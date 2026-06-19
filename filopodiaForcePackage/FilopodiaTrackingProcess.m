@@ -76,12 +76,15 @@ classdef FilopodiaTrackingProcess < DataProcessingProcess
     end
 
 
+    methods (Access = public)
         function markSuccess(obj)
             % Mark process as successfully completed (for GUI status display).
             % success_ is SetAccess=protected so only subclass methods can set it.
             obj.success_ = true;
             obj.updated_ = true;
         end
+    end
+
     methods (Static)
         function name = getName(), name = 'Filopodia Tracking'; end
         function h = GUI(), h = @filopodiaTrackingProcessGUI; end
