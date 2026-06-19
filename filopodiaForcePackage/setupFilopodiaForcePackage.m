@@ -91,8 +91,10 @@ for i = 1:numel(MD.processes_)
                 outPaths{1,1} = outFile;
                 proc.setOutFilePaths(outPaths);
                 % mark process as successfully completed so packageGUI shows check
-                proc.success_ = true;
-                proc.updated_ = true;
+                % success_ is SetAccess=protected; use our subclass markSuccess()
+                if ismethod(proc,'markSuccess')
+                    proc.markSuccess();
+                end
                 fprintf('  Restored completion status for %s\n', cls);
             catch ME
                 fprintf('  Warning: could not restore status for %s: %s\n', cls, ME.message);
@@ -104,6 +106,24 @@ if corrected > 0
     MD.save();
     fprintf('Saved MD with %d updated process(es).\n', corrected);
 end
+
+% --- wire MD processes into package slots ---
+% pkg.processes_ starts as {[] [] [] [] [] []}; fill slots from MD.processes_
+classNames = pkg.getProcessClassNames();
+for i = 1:numel(MD.processes_)
+    proc = MD.processes_{i};
+    if isempty(proc), continue; end
+    slot = find(strcmp(classNames, class(proc)), 1);
+    if ~isempty(slot) && isempty(pkg.processes_{slot})
+        try
+            pkg.setProcess(slot, proc);
+            fprintf('  Linked %s to package slot %d\n', class(proc), slot);
+        catch ME
+            fprintf('  Warning: could not link %s: %s\n', class(proc), ME.message);
+        end
+    end
+end
+MD.save();
 
 % --- report ---
 fprintf('Output root: %s\n', root);
