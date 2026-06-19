@@ -90,8 +90,13 @@ for i = 1:numel(MD.processes_)
                 outPaths = cell(1, nChan);
                 outPaths{1,1} = outFile;
                 proc.setOutFilePaths(outPaths);
-                fprintf('  Restored outFilePaths for %s\n', cls);
-            catch, end
+                % mark process as successfully completed so packageGUI shows check
+                proc.success_ = true;
+                proc.updated_ = true;
+                fprintf('  Restored completion status for %s\n', cls);
+            catch ME
+                fprintf('  Warning: could not restore status for %s: %s\n', cls, ME.message);
+            end
         end
     end
 end

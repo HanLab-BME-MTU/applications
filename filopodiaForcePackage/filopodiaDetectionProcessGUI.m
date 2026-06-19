@@ -1,10 +1,8 @@
 function varargout = filopodiaDetectionProcessGUI(varargin)
 %FILPODIADETECTIONPROCESSGUI  Settings GUI for Process 2 (Detection).
-ip=inputParser; ip.addOptional('mainFig',[],@ishandle);
-ip.addOptional('procID',[],@isscalar);
-ip.KeepUnmatched=true; ip.parse(varargin{:});
-mainFig=ip.Results.mainFig; procID=ip.Results.procID;
-if isempty(mainFig)||isempty(procID), error('Call from packageGUI only.'); end
+if numel(varargin)<3, error('Call from packageGUI only: crtProcGUI(''mainFig'',fig,procID)'); end
+mainFig = varargin{2};   % handles.figure1
+procID  = varargin{3};   % process index
 pd(1) = def('PSFsigma','PSF / tip sigma (px)','edit','Tip blob scale; use ~2.6 for talin-GFP tips (larger than PSF)');
 pd(2) = def('Alpha','Detection alpha','edit','Significance threshold for pointSourceDetection; lower = more detections');
 pd(3) = def('TipMaxDistFromBody','Max tip distance from body (px)','edit','Adhesions farther than this are discarded');

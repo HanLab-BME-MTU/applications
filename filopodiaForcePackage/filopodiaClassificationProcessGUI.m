@@ -1,10 +1,8 @@
 function varargout = filopodiaClassificationProcessGUI(varargin)
 %FILPODIACLASSIFICATIONPROCESSGUI  Settings GUI for Process 4 (Classification).
-ip=inputParser; ip.addOptional('mainFig',[],@ishandle);
-ip.addOptional('procID',[],@isscalar);
-ip.KeepUnmatched=true; ip.parse(varargin{:});
-mainFig=ip.Results.mainFig; procID=ip.Results.procID;
-if isempty(mainFig)||isempty(procID), error('Call from packageGUI only.'); end
+if numel(varargin)<3, error('Call from packageGUI only: crtProcGUI(''mainFig'',fig,procID)'); end
+mainFig = varargin{2};   % handles.figure1
+procID  = varargin{3};   % process index
 pd(1)  = def('MinTipLifetime','Min tip lifetime (frames)','edit','Well-tracked tip must persist at least this long');
 pd(2)  = def('MinLinearFrac','Min trajectory linearity','edit','PCA principal-axis variance fraction; 0.85 = mostly straight');
 pd(3)  = def('MinTipDist','Min tip dist from body (px)','edit','Tip must reach at least this far outside the body');

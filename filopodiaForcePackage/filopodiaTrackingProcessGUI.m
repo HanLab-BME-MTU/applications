@@ -1,10 +1,8 @@
 function varargout = filopodiaTrackingProcessGUI(varargin)
 %FILPODIATRACKINGPROCESSGUI  Settings GUI for Process 3 (Tracking).
-ip=inputParser; ip.addOptional('mainFig',[],@ishandle);
-ip.addOptional('procID',[],@isscalar);
-ip.KeepUnmatched=true; ip.parse(varargin{:});
-mainFig=ip.Results.mainFig; procID=ip.Results.procID;
-if isempty(mainFig)||isempty(procID), error('Call from packageGUI only.'); end
+if numel(varargin)<3, error('Call from packageGUI only: crtProcGUI(''mainFig'',fig,procID)'); end
+mainFig = varargin{2};   % handles.figure1
+procID  = varargin{3};   % process index
 pd(1) = def('MaxLinkDist','Max link distance (px/frame)','edit','Maximum distance to link detections between frames');
 pd(2) = def('MaxGapFrames','Max gap frames','edit','Maximum number of frames to bridge over a gap');
 pd(3) = def('MinTrackLength','Min track length (frames)','edit','Discard tracks shorter than this');

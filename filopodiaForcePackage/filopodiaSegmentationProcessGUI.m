@@ -1,10 +1,8 @@
 function varargout = filopodiaSegmentationProcessGUI(varargin)
 %FILOPODIASEGMENTATIONPROCESSGUI  Settings GUI for Process 1 (Segmentation).
-ip=inputParser; ip.addOptional('mainFig',[],@ishandle);
-ip.addOptional('procID',[],@isscalar);
-ip.KeepUnmatched=true; ip.parse(varargin{:});
-mainFig=ip.Results.mainFig; procID=ip.Results.procID;
-if isempty(mainFig)||isempty(procID), error('Call from packageGUI only.'); end
+if numel(varargin)<3, error('Call from packageGUI only: crtProcGUI(''mainFig'',fig,procID)'); end
+mainFig = varargin{2};   % handles.figure1
+procID  = varargin{3};   % process index
 pd(1)  = def('GaussianBlurSigma','Body blur sigma (px)','edit','Gaussian blur applied before body thresholding; larger = smoother edge');
 pd(2)  = def('BodyThreshold','Body threshold method','editstr','''otsu'' | ''rosin'' | numeric value');
 pd(3)  = def('BodyOpenRadius','Body open radius (px)','edit','Morphological opening to remove filopodia roots from body mask');

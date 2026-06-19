@@ -1,10 +1,8 @@
 function varargout = filopodiaStatisticsProcessGUI(varargin)
 %FILPODIASTATISTICSPROCESSGUI  Settings GUI for Process 6 (Statistics).
-ip=inputParser; ip.addOptional('mainFig',[],@ishandle);
-ip.addOptional('procID',[],@isscalar);
-ip.KeepUnmatched=true; ip.parse(varargin{:});
-mainFig=ip.Results.mainFig; procID=ip.Results.procID;
-if isempty(mainFig)||isempty(procID), error('Call from packageGUI only.'); end
+if numel(varargin)<3, error('Call from packageGUI only: crtProcGUI(''mainFig'',fig,procID)'); end
+mainFig = varargin{2};   % handles.figure1
+procID  = varargin{3};   % process index
 pd(1) = def('MinLifetimeForStats','Min lifetime for stats (frames)','edit','Ignore filopodia shorter than this when computing statistics');
 pd(2) = def('ExportCSV','Export CSV','checkbox','Write per-filopodium stats to a .csv file');
 pd(3) = def('MakeFigures','Make figures','checkbox','Automatically generate summary plots after running');
