@@ -43,6 +43,8 @@ proc.setOutFilePaths(outFilePaths);
 pix = movieData.pixelSize_; if isempty(pix), pix = 1; end
 shaftStep = getfielddef(p,'ShaftSampleStep',3);   % px along shaft
 sampR     = getfielddef(p,'SampleRadius',1);      % px; local averaging radius for talin
+nNorm     = getfielddef(p,'NormProfileN',50);     % # points for length-normalized profile
+sN        = linspace(0,1,nNorm)';                 % common normalized arc-length grid (0=tip,1=base)
 
 %% build per-frame traction interpolants (lazy cache)
 nF = movieData.nFrames_;
@@ -63,7 +65,9 @@ end
 nFil = numel(filopodia);
 filoSamples = struct('tipTrackId',{},'frames',{}, ...
     'tipForce',{},'tipForceAxial',{},'tipForceLateral',{},'tipTalin',{}, ...
-    'baseForce',{},'baseTalin',{},'shaftProfile',{});
+    'baseForce',{},'baseTalin',{},'shaftProfile',{}, ...
+    'normS',{},'normForce',{},'normForceAxial',{},'normTalin',{}, ...
+    'normForceMean',{},'normForceAxialMean',{},'normTalinMean',{});
 
 progressText(0,'Filopodia sampling','Filopodia sampling');
 for f = 1:nFil
@@ -72,6 +76,10 @@ for f = 1:nFil
     tipF=nan(1,nfr); tipFa=nan(1,nfr); tipFl=nan(1,nfr); tipI=nan(1,nfr);
     baseF=nan(1,nfr); baseI=nan(1,nfr);
     shaftProfile = cell(1,nfr);
+    % length-normalized shaft profiles, one column per frame, resampled to sN grid
+    nF_norm  = nan(nNorm, nfr);   % traction magnitude (Pa)
+    nFa_norm = nan(nNorm, nfr);   % axial traction (+ = outward toward tip)
+    nI_norm  = nan(nNorm, nfr);   % talin intensity
     for j = 1:nfr
         t = fil.frames(j);
         img = double(movieData.channels_(iChan).loadImage(t));
@@ -96,6 +104,16 @@ for f = 1:nFil
             sp.talin(q) = sampleInt(img, pt, sampR);
         end
         shaftProfile{j} = sp;
+        % length-normalized resampling (tip=0 -> base=1) onto common grid sN
+        if numel(ss) >= 2
+            sNorm_j = ss / aL;            % 0..1 along this frame's shaft
+            [su, iu] = unique(sNorm_j(:));
+            if numel(su) >= 2
+                nF_norm(:,j)  = interp1(su, sp.force(iu),      sN, 'linear', NaN);
+                nFa_norm(:,j) = interp1(su, sp.forceAxial(iu), sN, 'linear', NaN);
+                nI_norm(:,j)  = interp1(su, sp.talin(iu),      sN, 'linear', NaN);
+            end
+        end
     end
     filoSamples(f).tipTrackId      = fil.tipTrackId;
     filoSamples(f).frames          = fil.frames;
@@ -106,6 +124,14 @@ for f = 1:nFil
     filoSamples(f).baseForce       = baseF;
     filoSamples(f).baseTalin       = baseI;
     filoSamples(f).shaftProfile    = shaftProfile;
+    % length-normalized shaft profiles (nNorm x nFrames) + per-filopodium time-average
+    filoSamples(f).normS              = sN;
+    filoSamples(f).normForce          = nF_norm;
+    filoSamples(f).normForceAxial     = nFa_norm;
+    filoSamples(f).normTalin          = nI_norm;
+    filoSamples(f).normForceMean      = mean(nF_norm, 2,'omitnan');
+    filoSamples(f).normForceAxialMean = mean(nFa_norm,2,'omitnan');
+    filoSamples(f).normTalinMean      = mean(nI_norm, 2,'omitnan');
     progressText(f/max(1,nFil),'Filopodia sampling');
 end
 
