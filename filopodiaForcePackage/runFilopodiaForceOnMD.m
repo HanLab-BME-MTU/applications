@@ -150,13 +150,21 @@ end
 % =====================================================================
 function tf = needRun(proc, overwrite)
 if overwrite, tf = true; return; end
-% run unless a non-empty output file already exists
+% Skip only if the process succeeded AND its output file is present.
+% success_ is set to true by the base Process.run only when the worker
+% returns without error; a process that threw mid-run stays success_=false.
 tf = true;
+okSuccess = false;
+try, okSuccess = ~isempty(proc.success_) && proc.success_; catch, end %#ok<CTCH>
+if ~okSuccess, return; end   % never ran, or failed -> needs running
+
+okFile = false;
 try
     op = proc.outFilePaths_;
     for k = 1:numel(op)
-        if ~isempty(op{k}) && exist(op{k},'file')==2, tf = false; return; end
+        if ~isempty(op{k}) && exist(op{k},'file')==2, okFile = true; break; end
     end
 catch
 end
+if okSuccess && okFile, tf = false; end
 end

@@ -196,6 +196,7 @@ catch
 end
 print(h, [fbase '.tif'], '-dtiff');
 close(h);
+end
 
 % ===================================================================
 function s = matchSample(filoSamples, tipTrackId)

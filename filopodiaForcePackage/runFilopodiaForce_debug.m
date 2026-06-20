@@ -80,8 +80,8 @@ end
 pp2.ChannelIndex       = iChanTal;
 pp2.PSFsigma           = 2.1;  % TUNE: lower = more sensitive; 2.1 balances tip size vs noise
 pp2.Alpha              = 0.05;
-pp2.TipMaxDistFromBody = 110;
-pp2.MaxTipBaseDist     = 130;
+pp2.TipMaxDistFromBody = 70;
+pp2.MaxTipBaseDist     = 90;
 pp2.BaseInsideBand     = 4;
 pp2.DetectMode         = 'auto';
 pp2.ProcessFrames      = tFrame;
