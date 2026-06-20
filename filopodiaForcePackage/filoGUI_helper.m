@@ -102,6 +102,7 @@ end
 
 % ===================================================================
 function applyGUI(fig)
+if ~isvalid(fig), return; end
 ud = fig.UserData;
 fp = ud.funParams;
 pd = ud.paramDefs;
@@ -120,12 +121,29 @@ end
 try
     ud.proc.setPara(fp);
     ud.MD.save();
-    % refresh packageGUI
-    handles_main = guidata(ud.mainFig);
-    packageGUI('refreshPackage_Callback', handles_main.figure1, [], handles_main);
 catch ME
-    uialert(fig, ME.message, 'Error saving params');
+    errordlg(ME.message, 'Error saving params');
     return;
+end
+% try to refresh packageGUI and check the process checkbox
+try
+    h = findobj('Type','figure','Name','Filopodia Force Analysis');
+    if ~isempty(h)
+        handles_main = guidata(h(1));
+        % check the checkbox for this process so it becomes bold/runnable
+        chk = handles_main.(['checkbox_' num2str(ud.procID)]);
+        if ~get(chk, 'Value')
+            set(chk, 'Value', 1);
+            userfcn_checkAllMovies(ud.procID, 1, handles_main);
+            userfcn_lampSwitch(ud.procID, 1, handles_main);
+        end
+        % try refresh too
+        try
+            packageGUI('refreshPackage_Callback', handles_main.figure1, [], handles_main);
+        catch, end
+    end
+catch
+    % packageGUI refresh failed silently - not critical
 end
 delete(fig);
 end
