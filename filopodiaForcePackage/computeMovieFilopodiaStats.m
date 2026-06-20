@@ -130,13 +130,72 @@ stats.corr      = corrStats;
 stats.nFilopodia= numel(F);
 stats.movieName = movieData.movieDataFileName_;
 
+%% length-normalized shaft profiles (per-filopodium time-average), aggregated over the movie
+normProf = struct('sN',[],'force',[],'forceAxial',[],'talin',[], ...
+    'forceMean',[],'forceAxialMean',[],'talinMean',[], ...
+    'forceSEM',[],'forceAxialSEM',[],'talinSEM',[],'nFilo',0);
+if haveSmp && ~isempty(filoSamples) && isfield(filoSamples,'normForceMean')
+    keepIds = [F.tipTrackId];                 % only filopodia passing MinLifetimeForStats
+    sN = filoSamples(1).normS;
+    Pf=[]; Pa=[]; Pt=[];
+    for q = 1:numel(filoSamples)
+        if ~ismember(filoSamples(q).tipTrackId, keepIds), continue; end
+        Pf = [Pf, filoSamples(q).normForceMean(:)];      %#ok<AGROW>
+        Pa = [Pa, filoSamples(q).normForceAxialMean(:)]; %#ok<AGROW>
+        Pt = [Pt, filoSamples(q).normTalinMean(:)];      %#ok<AGROW>
+    end
+    normProf.sN             = sN;
+    normProf.force          = Pf;     % nNorm x nFilo
+    normProf.forceAxial     = Pa;
+    normProf.talin          = Pt;
+    normProf.nFilo          = size(Pf,2);
+    normProf.forceMean      = mean(Pf,2,'omitnan');
+    normProf.forceAxialMean = mean(Pa,2,'omitnan');
+    normProf.talinMean      = mean(Pt,2,'omitnan');
+    normProf.forceSEM       = std(Pf,0,2,'omitnan')./sqrt(max(sum(isfinite(Pf),2),1));
+    normProf.forceAxialSEM  = std(Pa,0,2,'omitnan')./sqrt(max(sum(isfinite(Pa),2),1));
+    normProf.talinSEM       = std(Pt,0,2,'omitnan')./sqrt(max(sum(isfinite(Pt),2),1));
+end
+stats.normProfile = normProf;
+
 save(outFile, 'stats', '-v7.3');
 fprintf(['Stats: %d filopodia | median L %.0f nm | median lifetime %.1f s | ' ...
     'median tip traction %.1f Pa\n'], numel(F), median(pooled.Lmean_nm,'omitnan'), ...
     median(pooled.lifetime_s,'omitnan'), median(pooled.tipForceMean,'omitnan'));
 fprintf('corr: talin~axial r=%.2f | vProt~axial r=%.2f | talin~force r=%.2f\n', ...
     corrStats.talin_vs_axial, corrStats.vProt_vs_axial, corrStats.talin_vs_force);
+
+%% figure: length-normalized shaft profiles (individual thin + bold mean)
+makeFig = getfielddef(p,'MakeFigures',true);
+if makeFig && normProf.nFilo > 0
+    figDir = fullfile(outDir,'Figs'); if exist(figDir,'dir')~=7, mkdir(figDir); end
+    drawNormProfile(normProf.sN, normProf.force,      normProf.forceMean, ...
+        'traction (Pa)', 'Normalized shaft profile: traction', fullfile(figDir,'normProfile_traction'));
+    drawNormProfile(normProf.sN, normProf.forceAxial, normProf.forceAxialMean, ...
+        'axial traction (Pa, + outward)', 'Normalized shaft profile: axial traction', fullfile(figDir,'normProfile_axialTraction'));
+    drawNormProfile(normProf.sN, normProf.talin,      normProf.talinMean, ...
+        'talin intensity (a.u.)', 'Normalized shaft profile: talin', fullfile(figDir,'normProfile_talin'));
 end
+end
+
+% ===================================================================
+function drawNormProfile(sN, M, mu, ylab, ttl, fbase)
+% M: nNorm x nFilo individual profiles; mu: nNorm x 1 mean
+h = figure('Color','w','Visible','off');
+hold on;
+plot(sN, M, '-', 'Color',[0.7 0.7 0.85], 'LineWidth',0.5);
+plot(sN, mu, '-', 'Color',[0.10 0.30 0.80], 'LineWidth',2.5);
+hold off; box on;
+xlabel('normalized arc length  (0 = tip \rightarrow 1 = base)');
+ylabel(ylab); title(sprintf('%s  (n=%d)', ttl, size(M,2)));
+xlim([0 1]);
+try
+    hgexport(h, fbase, hgexport('factorystyle'), 'Format','eps');
+    hgsave(h, fbase, '-v7.3');
+catch
+end
+print(h, [fbase '.tif'], '-dtiff');
+close(h);
 
 % ===================================================================
 function s = matchSample(filoSamples, tipTrackId)

@@ -71,6 +71,7 @@ classdef FilopodiaSamplingProcess < DataProcessingProcess
             % sampling
             funParams.ShaftSampleStep   = 3;       % px; arc-length step along shaft
             funParams.SampleRadius      = 1;       % px; local averaging radius for talin
+            funParams.NormProfileN      = 50;      % # points for length-normalized shaft profile (tip=0 -> base=1)
             funParams.SampleStat        = 'mean';  % 'mean'|'median'|'max'
             funParams.BatchMode         = false;
         end
