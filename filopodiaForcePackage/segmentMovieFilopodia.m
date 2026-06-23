@@ -76,30 +76,12 @@ end
 function r = segmentOneFrame(img, p)
 % Segment one frame: body mask + steerable ridge maps.
 
-% --- cell body: blurred threshold, then despike + smooth ---
+% --- cell body (shared with GUI preview via segmentFilopodiaBody) ---
 % Filopodia are recovered separately by the steerable filter, so the body
 % must exclude them and end smooth/rounded. Opening removes the thin
-% filopodia roots; closing rounds the boundary and fills the notches
-% between them.
-imgB = imgaussfilt(img, p.GaussianBlurSigma);
-switch lower(num2str(p.BodyThreshold))
-    case 'otsu',  level = thresholdOtsu(imgB);
-    case 'rosin', level = thresholdRosin(imgB);
-    otherwise,    level = p.BodyThreshold;
-end
-bodyMask = imgB > level;
-bodyMask = imfill(bodyMask, 'holes');
-if any(bodyMask(:))
-    bodyMask = bwareafilt(bodyMask, 1);              % keep largest object
-end
-if p.BodyOpenRadius > 0
-    bodyMask = imopen(bodyMask, strel('disk', p.BodyOpenRadius));   % despike
-end
-if p.BodyClosingRadius > 0
-    bodyMask = imclose(bodyMask, strel('disk', p.BodyClosingRadius)); % round
-end
-bodyMask = imfill(bodyMask, 'holes');
-bodyMask = bwareaopen(bodyMask, p.BodyMinArea);
+% filopodia roots; closing rounds the boundary and fills the notches.
+manual = getfielddef(p,'ManualThreshold',[]);
+bodyMask = segmentFilopodiaBody(img, p, manual);
 
 % --- steerable ridge maps (on the original unblurred image) ---
 [res, theta, nms, scaleMap] = multiscaleSteerableDetector(img, ...
@@ -127,4 +109,9 @@ r.theta     = theta;
 r.nms       = nms;
 r.scaleMap  = scaleMap;
 r.shaftMask = shaftMask;
+end
+
+% =====================================================================
+function v = getfielddef(s, name, default)
+if isfield(s, name) && ~isempty(s.(name)), v = s.(name); else, v = default; end
 end

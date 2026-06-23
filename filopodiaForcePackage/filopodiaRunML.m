@@ -32,7 +32,7 @@ if useParFor
         try
             filopodiaRun(curMD, processesToRun, forceRun, iChanTal);
         catch ME
-            warning('Movie %d failed: %s', ii, ME.message);
+            warning(safeId(ME), 'Movie %d failed: %s', ii, ME.message);
         end
     end
 else
@@ -42,10 +42,18 @@ else
         try
             filopodiaRun(curMD, processesToRun, forceRun, iChanTal);
         catch ME
-            warning('Movie %d failed: %s', ii, ME.message);
+            warning(safeId(ME), 'Movie %d failed: %s', ii, ME.message);
             fprintf(2,'%s\n', getReport(ME,'extended','hyperlinks','off'));
         end
     end
 end
 ML.save
+end
+
+% =====================================================================
+function id = safeId(ME)
+% warning() requires a valid (non-empty, namespaced) identifier as its first
+% argument; some errors (especially from parfor) arrive with an empty one.
+id = ME.identifier;
+if isempty(id), id = 'filopodiaRunML:movieFailed'; end
 end

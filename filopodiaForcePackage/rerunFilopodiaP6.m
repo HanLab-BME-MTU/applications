@@ -101,7 +101,8 @@ for c = 1:nCond
             MD.save();
             nFixed = nFixed + 1;
         catch ME
-            warning('  movie %d: P6 failed again: %s', k, ME.message);
+            id = ME.identifier; if isempty(id), id = 'rerunFilopodiaP6:p6Failed'; end
+            warning(id, '  movie %d: P6 failed again: %s', k, ME.message);
             fprintf(2,'%s\n', getReport(ME,'extended','hyperlinks','off'));
             nFailed = nFailed + 1;
         end

@@ -92,6 +92,8 @@ classdef FilopodiaSegmentationProcess < ImageAnalysisProcess
             funParams.SteerableOrder    = 4;
             funParams.SigmaArray        = [1 2 4];
             funParams.BodyThreshold     = 'rosin';
+            funParams.ThreshScale       = 1;     % multiplier on otsu/rosin level; <1 recovers dim talin band
+            funParams.ManualThreshold   = [];    % fixed intensity level set via GUI; [] = use method+scale
             funParams.GaussianBlurSigma = 2;     % px; blur before body threshold
             funParams.BodyMinArea       = 500;
             funParams.BodyOpenRadius    = 8;     % px; opening removes filopodia roots (despike)

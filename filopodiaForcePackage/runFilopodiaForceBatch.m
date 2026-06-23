@@ -47,7 +47,8 @@ for c = 1:nCond
             runFilopodiaForceOnMD(MD, iChanTal, 'Overwrite', overwrite);
             MD.save();
         catch ME
-            warning('Movie %d in %s failed: %s', k, condFolders{c}, ME.message);
+            id = ME.identifier; if isempty(id), id = 'runFilopodiaForceBatch:movieFailed'; end
+            warning(id, 'Movie %d in %s failed: %s', k, condFolders{c}, ME.message);
             fprintf(2, '%s\n', getReport(ME, 'extended', 'hyperlinks','off'));
         end
     end

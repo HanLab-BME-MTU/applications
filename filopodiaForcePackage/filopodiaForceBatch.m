@@ -157,7 +157,8 @@ try
         'ChannelIndex', 1, 'Frame', 'mid', 'Select', 'medianCount'); %#ok<NASGU>
     save([dataPath filesep 'representativeMovies.mat'],'repInfo');
 catch ME
-    warning(ME.identifier, 'Representative overlay failed: %s', ME.message);
+    id = ME.identifier; if isempty(id), id = 'filopodiaForceBatch:repOverlayFailed'; end
+    warning(id, 'Representative overlay failed: %s', ME.message);
 end
 
 %% ---- helper for pooled per-filopodium box plots ----
