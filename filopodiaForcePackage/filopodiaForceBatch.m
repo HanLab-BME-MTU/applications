@@ -151,6 +151,15 @@ else
     nameList = groupNames';
 end
 
+%% ---- representative-movie segmentation overlay on talin (visual QC) ----
+try
+    repInfo = filopodiaRepOverlay(MLAll, nameList, figPath, ...
+        'ChannelIndex', 1, 'Frame', 'mid', 'Select', 'medianCount'); %#ok<NASGU>
+    save([dataPath filesep 'representativeMovies.mat'],'repInfo');
+catch ME
+    warning(ME.identifier, 'Representative overlay failed: %s', ME.message);
+end
+
 %% ---- helper for pooled per-filopodium box plots ----
 plotPooled = @(G,ylab,ttl,fname) localBoxPooled(G,nameList,ylab,ttl,figPath,dataPath,fname);
 
@@ -227,19 +236,21 @@ cmap = lines(nc);
 h1 = figure('Color','w'); hold on;
 legendEntries = {};
 meanTable = sN(:);  varNames = {'normS'};
+lineH = gobjects(1,nc);   % store the mean-line handle per condition
 for ii = 1:nc
     M = Gmat{ii};
     if isempty(M), continue; end
     mu  = mean(M,2,'omitnan');
     sem = std(M,0,2,'omitnan')./sqrt(max(sum(isfinite(M),2),1));
-    % shaded SEM band
+    % shaded SEM band (excluded from legend via HandleVisibility off)
     xb = [sN(:); flipud(sN(:))];
     yb = [mu-sem; flipud(mu+sem)];
     ok = isfinite(xb)&isfinite(yb);
     if any(ok)
-        fill(xb(ok), yb(ok), cmap(ii,:), 'FaceAlpha',0.15, 'EdgeColor','none');
+        fill(xb(ok), yb(ok), cmap(ii,:), 'FaceAlpha',0.15, ...
+            'EdgeColor','none', 'HandleVisibility','off');
     end
-    plot(sN, mu, '-', 'Color',cmap(ii,:), 'LineWidth',2.5);
+    lineH(ii) = plot(sN, mu, '-', 'Color',cmap(ii,:), 'LineWidth',2.5);
     legendEntries{end+1} = sprintf('%s (n=%d)', nameList{ii}, size(M,2)); %#ok<AGROW>
     meanTable = [meanTable, mu, sem]; %#ok<AGROW>
     varNames = [varNames, {[matlab.lang.makeValidName(nameList{ii}) '_mean'], ...
@@ -248,7 +259,8 @@ end
 hold off; box on;
 xlabel('normalized arc length  (0 = tip \rightarrow 1 = base)');
 ylabel(ylab); title(ttl); xlim([0 1]);
-legend(legendEntries,'Location','best');
+valid = isgraphics(lineH);
+legend(lineH(valid), legendEntries, 'Location','best');
 saveAll(h1,figPath,fname);
 T = array2table(meanTable,'VariableNames',varNames);
 writetable(T, [dataPath '/' fname '.csv']);
