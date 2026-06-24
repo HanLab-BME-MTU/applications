@@ -25,7 +25,7 @@ if nargin < 4, adhesionInfo = {}; end
 haveAdh = ~isempty(adhesionInfo);
 
 adhesionTracks = struct('trackId',{},'frames',{},'featIdx',{},'pos',{}, ...
-    'amp',{},'dist',{},'dist_nm',{},'lifetime',{},'lifetime_s',{});
+    'amp',{},'dist',{},'dist_nm',{},'isInterp',{},'lifetime',{},'lifetime_s',{});
 if isempty(tracksFinal), return; end
 
 matchTol = 2;   % px; tracked pos vs detection must be within this to match
@@ -43,14 +43,29 @@ for i = 1:numel(tracksFinal)
         xs = row(1:8:end); ys = row(2:8:end); as = row(4:8:end);
         fr = startFrame + (0:nSpan-1);
 
-        valid = ~isnan(xs) & ~isnan(ys);
-        if nnz(valid) < 1, continue; end
-        xs=xs(valid); ys=ys(valid); as=as(valid); fr=fr(valid);
+        real = ~isnan(xs) & ~isnan(ys);   % frames with a real detection
+        if nnz(real) < 1, continue; end
+
+        % Keep the FULL span from first to last real detection and fill the
+        % gap-closed frames in between by linear interpolation, so the track
+        % stays continuous (this is the whole point of u-track gap closing).
+        % Dropping NaN frames here is what made filopodia blink in/out.
+        fi = find(real); a = fi(1); b = fi(end);
+        keep = a:b;
+        fr = fr(keep); xs = xs(keep); ys = ys(keep); as = as(keep);
+        isInterp = isnan(xs) | isnan(ys);
+        gi = find(~isInterp);
+        if numel(gi) >= 2
+            xs = interp1(fr(gi), xs(gi), fr, 'linear');
+            ys = interp1(fr(gi), ys(gi), fr, 'linear');
+            as = interp1(fr(gi), as(gi), fr, 'linear');
+        end
 
         nF = numel(fr);
         featIdx = nan(1,nF); dist = nan(1,nF);
         if haveAdh
             for j = 1:nF
+                if isInterp(j), continue; end       % no detection on gap frames
                 t = fr(j);
                 if t<1 || t>numel(adhesionInfo) || isempty(adhesionInfo{t}), continue; end
                 A = adhesionInfo{t};
@@ -63,6 +78,11 @@ for i = 1:numel(tracksFinal)
                 end
             end
         end
+        % fill dist on interpolated frames so tip-reach tests stay smooth
+        gd = find(~isnan(dist));
+        if numel(gd) >= 2
+            dist = interp1(fr(gd), dist(gd), fr, 'linear', 'extrap');
+        end
 
         kept = kept + 1;
         adhesionTracks(kept).trackId    = kept;
@@ -72,6 +92,7 @@ for i = 1:numel(tracksFinal)
         adhesionTracks(kept).amp        = as(:)';
         adhesionTracks(kept).dist       = dist;
         adhesionTracks(kept).dist_nm    = dist * pixelSize;
+        adhesionTracks(kept).isInterp   = isInterp;
         adhesionTracks(kept).lifetime   = nF;
         adhesionTracks(kept).lifetime_s = (fr(end)-fr(1)) * timeInterval;
     end
