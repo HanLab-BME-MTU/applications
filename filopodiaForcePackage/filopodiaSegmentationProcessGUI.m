@@ -32,8 +32,8 @@ g = uigridlayout(fig,[1 2]);
 g.ColumnWidth = {360,'1x'}; g.RowHeight = {'1x'};
 
 left = uipanel(g,'Title','Settings');
-sp = uigridlayout(left,[20 2]);
-sp.ColumnWidth = {150,'1x'}; sp.RowHeight = repmat({26},1,20);
+sp = uigridlayout(left,[22 2]);
+sp.ColumnWidth = {150,'1x'}; sp.RowHeight = repmat({26},1,22);
 sp.Padding=[10 10 10 10]; sp.RowSpacing=4;
 
 ud = struct();
@@ -59,9 +59,20 @@ ud.efScale.Layout.Row=r; ud.efScale.Layout.Column=2;
 r=r+1; lbl(sp,r,'Manual level');
 ud.slLevel = uislider(sp,'Limits',[0 1],'Value',0);
 ud.slLevel.Layout.Row=r; ud.slLevel.Layout.Column=2;
-r=r+1; lbl(sp,r,'  (manual value)');
-ud.efLevel = uieditfield(sp,'numeric','Value',0,'Tooltip','Used only when method = manual');
-ud.efLevel.Layout.Row=r; ud.efLevel.Layout.Column=2;
+r=r+1; lbl(sp,r,'  fine adjust');
+fineP = uipanel(sp,'BorderType','none'); fineP.Layout.Row=r; fineP.Layout.Column=2;
+fg = uigridlayout(fineP,[1 3]); fg.Padding=[0 0 0 0]; fg.ColumnWidth={36,'1x',36}; fg.ColumnSpacing=4;
+ud.btnMinus = uibutton(fg,'Text',char(9664),'ButtonPushedFcn',@(~,~)nudgeLevel(fig,-1));
+ud.btnMinus.Layout.Row=1; ud.btnMinus.Layout.Column=1;
+ud.efLevel = uieditfield(fg,'numeric','Value',0,'Tooltip','Used only when method = manual');
+ud.efLevel.Layout.Row=1; ud.efLevel.Layout.Column=2;
+ud.btnPlus = uibutton(fg,'Text',char(9654),'ButtonPushedFcn',@(~,~)nudgeLevel(fig,+1));
+ud.btnPlus.Layout.Row=1; ud.btnPlus.Layout.Column=3;
+
+r=r+1; lbl(sp,r,'Display brightness');
+ud.slBright = uislider(sp,'Limits',[0.05 1],'Value',1, ...
+    'Tooltip','Display only: lower = brighter dim features (does not affect segmentation)');
+ud.slBright.Layout.Row=r; ud.slBright.Layout.Column=2;
 
 r=r+1; lbl(sp,r,'Body blur sigma (px)');
 ud.efBlur = uieditfield(sp,'numeric','Value',gf(fp,'GaussianBlurSigma',2),'Limits',[0 Inf]);
@@ -109,6 +120,7 @@ title(ud.ax,'Click "Update preview"'); ud.ax.XTick=[]; ud.ax.YTick=[];
 fig.UserData = ud;
 ud.slLevel.ValueChangedFcn = @(s,~) onLevelSlider(fig);
 ud.efLevel.ValueChangedFcn = @(s,~) onLevelEdit(fig);
+ud.slBright.ValueChangedFcn = @(s,~) doPreview(fig);
 ud.ddMethod.ValueChangedFcn = @(s,~) doPreview(fig);
 ud.ddChannel.ValueChangedFcn = @(s,~) onChannelChange(fig);
 ud.efFrame.ValueChangedFcn = @(s,~) onChannelChange(fig);
@@ -127,9 +139,24 @@ img = double(ud.MD.channels_(ud.ddChannel.Value).loadImage(fr));
 mx = max(img(:)); mn = min(img(:));
 if mx<=mn, mx=mn+1; end
 ud.slLevel.Limits = [mn mx];
-if ud.slLevel.Value<mn || ud.slLevel.Value>mx
-    ud.slLevel.Value = mn + 0.5*(mx-mn);
-    ud.efLevel.Value = ud.slLevel.Value;
+
+% restore a previously saved manual level the first time we open; otherwise
+% only re-center if the current value falls outside the new channel's range.
+savedML = [];
+if isfield(ud.fp,'ManualThreshold') && ~isempty(ud.fp.ManualThreshold)
+    savedML = ud.fp.ManualThreshold;
+end
+if ~isfield(ud,'levelInit') || ~ud.levelInit
+    if ~isempty(savedML)
+        v = min(max(savedML, mn), mx);
+    else
+        v = mn + 0.5*(mx-mn);
+    end
+    ud.slLevel.Value = v; ud.efLevel.Value = v;
+    ud.levelInit = true;
+elseif ud.slLevel.Value<mn || ud.slLevel.Value>mx
+    v = mn + 0.5*(mx-mn);
+    ud.slLevel.Value = v; ud.efLevel.Value = v;
 end
 fig.UserData = ud;
 doPreview(fig);
@@ -152,6 +179,19 @@ fig.UserData = ud;
 doPreview(fig);
 end
 
+function nudgeLevel(fig, dir)
+% fine adjust: step = 0.5% of the slider range
+ud = fig.UserData;
+lim = ud.slLevel.Limits;
+step = 0.005*(lim(2)-lim(1));
+v = min(max(ud.slLevel.Value + dir*step, lim(1)), lim(2));
+ud.slLevel.Value = v;
+ud.efLevel.Value = v;
+ud.ddMethod.Value = 'manual';
+fig.UserData = ud;
+doPreview(fig);
+end
+
 % ===================================================================
 function doPreview(fig)
 ud = fig.UserData;
@@ -167,6 +207,14 @@ catch ME
     return;
 end
 imshow(img,[],'Parent',ud.ax); hold(ud.ax,'on');
+% display-only contrast: cap the upper display limit so dim filopodia brighten
+mn = min(img(:)); mx = max(img(:));
+b = 1; try, b = ud.slBright.Value; catch, end
+if mx>mn
+    hi = mn + b*(mx-mn);
+    if hi<=mn, hi = mn + 1e-6; end
+    ud.ax.CLim = [mn hi];
+end
 B = bwboundaries(bodyMask);
 for k=1:numel(B)
     plot(ud.ax,B{k}(:,2),B{k}(:,1),'c-','LineWidth',1.5);
@@ -195,23 +243,87 @@ end
 % ===================================================================
 function doApply(fig)
 ud = fig.UserData;
-p = collectParams(ud);
-if strcmp(ud.ddMethod.Value,'manual')
+% Start from the process's CURRENT funParams_ (has all required hidden
+% fields like OutputDirectory), then overwrite only what the GUI controls.
+p = ud.proc.funParams_;
+p.ChannelIndex      = ud.ddChannel.Value;
+m = ud.ddMethod.Value;
+if strcmp(m,'manual'), p.BodyThreshold = 'rosin'; else, p.BodyThreshold = m; end
+p.ThreshScale       = ud.efScale.Value;
+p.GaussianBlurSigma = ud.efBlur.Value;
+p.BodyOpenRadius    = ud.efOpen.Value;
+p.BodyClosingRadius = ud.efClose.Value;
+p.BodyMinArea       = ud.efMinArea.Value;
+p.SteerableOrder    = ud.efOrder.Value;
+sig = str2num(ud.efSigma.Value); %#ok<ST2NM>
+if ~isempty(sig), p.SigmaArray = sig; end
+if strcmp(m,'manual')
     p.ManualThreshold = ud.efLevel.Value;
 else
     p.ManualThreshold = [];
 end
+
+ok = false;
+% setPara works on this install; use it as the primary path so the process
+% records its parameters and dirty/updated state correctly.
 try
     ud.proc.setPara(p);
+    ok = true;
+catch ME1
+    try
+        ud.proc.funParams_ = p;   % fallback
+        ok = true;
+    catch ME2
+        if isvalid(fig)
+            uialert(fig, sprintf('%s\n(fallback: %s)', ME1.message, ME2.message), ...
+                'Error saving parameters');
+        end
+        return;
+    end
+end
+if ~ok, return; end
+
+try
     ud.MD.save();
-    h = guidata(ud.mainFig);
-    packageGUI('refreshPackage_Callback', h.figure1, [], h);
 catch ME
-    uialert(fig, ME.message, 'Error saving parameters');
-    return;
+    if isvalid(fig), uialert(fig, ME.message, 'Saved params but MD.save failed'); end
+end
+
+% Tick the process checkbox / enable the next process in packageGUI the way
+% the standard lccb settings windows do. processGUI_ApplyFcn reads its state
+% from handles.figure1's UserData (crtProc/crtPackage/procID/MD/mainFig), so
+% assemble that structure and call it.
+appliedOK = false;
+try
+    ud2.crtPackage  = ud.pkg;
+    ud2.crtProc     = ud.proc;
+    ud2.procID      = ud.procID;
+    ud2.MD          = ud.MD;
+    ud2.mainFig     = ud.mainFig;
+    ud2.handles_main = guidata(ud.mainFig);   % main packageGUI handles (required by ApplyFcn)
+    set(fig, 'UserData', mergeStruct(get(fig,'UserData'), ud2));
+    handles.figure1 = fig;
+    processGUI_ApplyFcn(fig, [], handles, ud.proc.funParams_);
+    appliedOK = true;
+catch ME
+    fprintf(2,'[filopodiaSegmentationProcessGUI] processGUI_ApplyFcn failed: %s\n', ME.message);
+end
+if ~appliedOK
+    try
+        h = guidata(ud.mainFig);
+        packageGUI('refreshPackage_Callback', h.figure1, [], h);
+    catch ME
+        fprintf(2,'[filopodiaSegmentationProcessGUI] refresh fallback failed: %s\n', ME.message);
+    end
 end
 if ishandle(ud.previewFig), delete(ud.previewFig); end
-delete(fig);
+if isvalid(fig), delete(fig); end
+end
+
+% ===================================================================
+function s = mergeStruct(s, add)
+fn = fieldnames(add);
+for i=1:numel(fn), s.(fn{i}) = add.(fn{i}); end
 end
 
 % ===================================================================

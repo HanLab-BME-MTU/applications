@@ -1,9 +1,18 @@
-classdef FilopodiaTrackingProcess < DataProcessingProcess
-    % Process 3. Link tip (+base) detections over time by LAP (lap.m from
-    % uTrack), gap-close, then derive L(t)=geodesic base->tip, signed dL/dt
-    % (protrusion +, retraction -), motility state and fluctuation frequency.
-    % To reuse the full uTrack engine instead, swap the wrapper for
-    % trackCloseGapsKalmanSparse on the movieInfo from process 2.
+classdef FilopodiaTrackingProcess < TrackingProcess
+    % Process 3 of the FilopodiaForcePackage.
+    %
+    % Thin subclass of u-track's TrackingProcess: the full u-track engine
+    % (trackCloseGapsKalmanSparse with Brownian + directed-motion cost
+    % matrices, gap closing and Kalman filtering) does the linking, and the
+    % stock trackingProcessGUI (with its frame-to-frame linking and gap
+    % closing setting dialogs) is inherited unchanged. We only (1) seed
+    % filopodia-appropriate default parameters and (2) after tracking, convert
+    % the u-track tracksFinal into the adhesionTracks struct that Processes
+    % 4-6 consume, saving both into the same output file.
+    %
+    % Input is the FilopodiaDetectionProcess (a DetectionProcess subclass),
+    % whose movieInfo is already in u-track format, so no input adapter is
+    % needed.
 
     methods (Access = public)
         function obj = FilopodiaTrackingProcess(owner, varargin)
@@ -17,77 +26,51 @@ classdef FilopodiaTrackingProcess < DataProcessingProcess
                 ip.parse(owner, varargin{:});
                 outputDir = ip.Results.outputDir;
                 funParams = ip.Results.funParams;
-
-                super_args{1} = owner;
-                super_args{2} = FilopodiaTrackingProcess.getName;
-                super_args{3} = @trackMovieFilopodia;
                 if isempty(funParams)
                     funParams = FilopodiaTrackingProcess.getDefaultParams(owner, outputDir);
                 end
-                super_args{4} = funParams;
+                super_args{1} = owner;
+                super_args{2} = outputDir;
+                super_args{3} = funParams;
             end
-            obj = obj@DataProcessingProcess(super_args{:});
+            obj = obj@TrackingProcess(super_args{:});
+        end
+
+        function run(obj, varargin)
+            % Run the stock u-track tracking, then append adhesionTracks.
+            run@TrackingProcess(obj, varargin{:});
+            try
+                appendAdhesionTracks(obj);
+            catch ME
+                warning(safeId(ME), 'adhesionTracks conversion failed: %s', ME.message);
+            end
         end
 
         function varargout = loadChannelOutput(obj, iChan, varargin)
-            outputList = {'adhesionTracks', 'tracksFinal'};
-            ip = inputParser;
-            ip.addRequired('iChan', @(x) isscalar(x) && obj.checkChanNum(x));
-            ip.addOptional('iFrame', [], @(x) isempty(x) || all(obj.checkFrameNum(x)));
-            ip.addParamValue('useCache', true, @islogical);
-            ip.addParamValue('iZ', [], @(x) isempty(x) || ismember(x,1:obj.owner_.zSize_));
-            ip.addParamValue('output', 'tracksFinal', @(x) all(ismember(x, outputList)));
-            ip.parse(iChan, varargin{:});
-            output = ip.Results.output; iFrame = ip.Results.iFrame;
-            if ischar(output), output = {output}; end
-            s = cached.load(obj.outFilePaths_{1, iChan}, '-useCache', ip.Results.useCache);
-
-            varargout = cell(numel(output), 1);
-            for i = 1:numel(output)
-                switch output{i}
-                    case 'tracksFinal',    varargout{i} = s.tracksFinal;
-                    case 'adhesionTracks', varargout{i} = s.adhesionTracks;
-                end
-                % per-frame truncation so dragtails grow as the movie plays
-                if strcmp(output{i},'tracksFinal') && ~isempty(iFrame) && ~isempty(s.tracksFinal)
-                    tf = s.tracksFinal;
-                    sel = getTrackSEL(tf);
-                    valid = (iFrame >= sel(:,1) & iFrame <= sel(:,2));
-                    [tf(~valid).tracksCoordAmpCG] = deal([]);
-                    nC = (iFrame - sel(valid,1) + 1) * 8;
-                    vOut = tf(valid);
-                    for j = 1:numel(vOut)
-                        vOut(j).tracksCoordAmpCG = vOut(j).tracksCoordAmpCG(:, 1:nC(j));
+            % Extend the parent loader so 'adhesionTracks' is also available
+            % to Processes 4-6, while 'tracksFinal' etc. behave as in u-track.
+            wantAdh = false;
+            for k = 1:numel(varargin)
+                if (ischar(varargin{k}) && strcmp(varargin{k},'output')) && k<numel(varargin)
+                    o = varargin{k+1};
+                    if (ischar(o) && strcmp(o,'adhesionTracks')) || ...
+                       (iscell(o) && any(strcmp(o,'adhesionTracks')))
+                        wantAdh = true;
                     end
-                    tf(valid) = vOut;
-                    varargout{i} = tf;
                 end
             end
-        end
-
-        function output = getDrawableOutput(obj)
-            colors = hsv(numel(obj.owner_.channels_));
-            output(1).name = 'Tip adhesion tracks';
-            output(1).var  = 'tracksFinal';
-            output(1).type = 'overlay';
-            output(1).formatData = @TrackingProcess.formatTracks2D;
-            output(1).defaultDisplayMethod = @(x) TracksDisplay('Color', colors(x,:));
-        end
-    end
-
-
-    methods (Access = public)
-        function markSuccess(obj)
-            % Mark process as successfully completed (for GUI status display).
-            % success_ is SetAccess=protected so only subclass methods can set it.
-            obj.success_ = true;
-            obj.updated_ = true;
+            if wantAdh
+                s = load(obj.outFilePaths_{1, iChan}, 'adhesionTracks');
+                varargout{1} = s.adhesionTracks;
+                return;
+            end
+            [varargout{1:nargout}] = loadChannelOutput@TrackingProcess(obj, iChan, varargin{:});
         end
     end
 
     methods (Static)
         function name = getName(), name = 'Filopodia Tracking'; end
-        function h = GUI(), h = @filopodiaTrackingProcessGUI; end
+        % GUI() inherited from TrackingProcess -> stock trackingProcessGUI
 
         function funParams = getDefaultParams(owner, varargin)
             ip = inputParser;
@@ -96,18 +79,44 @@ classdef FilopodiaTrackingProcess < DataProcessingProcess
             ip.parse(owner, varargin{:});
             outputDir = ip.Results.outputDir;
 
+            % start from the full u-track default (gapCloseParam, costMatrices,
+            % kalmanFunctions all populated) and adjust for filopodia tips.
+            funParams = TrackingProcess.getDefaultParams(owner, outputDir);
             funParams.OutputDirectory = [outputDir filesep 'FilopodiaForcePackage' filesep 'FilopodiaTracking'];
-            funParams.ChannelIndex    = 1;
-            funParams.DetProcessIndex = [];      % []->find FilopodiaDetectionProcess
-            funParams.MaxLinkDist     = 8;       % px / frame; small: generous detection keeps tips close frame-to-frame
-            funParams.LinkUseBase     = true;
-            funParams.MaxGapFrames    = 3;       % frames; bridge short disappearances
-            funParams.MinTrackLength  = 3;       % frames
-            funParams.VelSmoothWin    = 3;       % frames
-            funParams.PauseThreshVel  = [];      % length/frame; []->auto
-            funParams.FreqMethod      = 'psd';   % 'psd'|'autocorr'|'cyclecount'
-            funParams.DetrendL        = true;
-            funParams.BatchMode       = false;
+
+            % point the tracker at our detection process specifically
+            funParams.DetProcessIndex = owner.getProcessIndex('FilopodiaDetectionProcess',1,0);
+
+            % filopodia-appropriate gap closing
+            funParams.gapCloseParam.timeWindow  = 4;   % max gap (frames)
+            funParams.gapCloseParam.mergeSplit  = 0;   % tips don't merge/split
+            funParams.gapCloseParam.minTrackLen = 3;   % drop 1-2 frame flickers
+            funParams.gapCloseParam.diagnostics = 0;
+
+            % single talin channel by default (not all channels)
+            funParams.ChannelIndex = funParams.DetProcessIndex;
+            if isempty(funParams.ChannelIndex), funParams.ChannelIndex = 1; end
+            funParams.ChannelIndex = 1;
         end
     end
+end
+
+% =====================================================================
+function appendAdhesionTracks(obj)
+% Convert u-track tracksFinal into adhesionTracks and save into the same
+% per-channel output file, so Processes 4-6 can read it directly.
+MD = obj.getOwner();
+pix = MD.pixelSize_; dt = MD.timeInterval_;
+chans = obj.funParams_.ChannelIndex;
+for i = chans(:)'
+    f = obj.outFilePaths_{1, i};
+    if isempty(f) || exist(f,'file')~=2, continue; end
+    S = load(f, 'tracksFinal');
+    adhesionTracks = tracksFinal2adhesionTracks(S.tracksFinal, pix, dt); %#ok<NASGU>
+    save(f, 'adhesionTracks', '-append');
+end
+end
+
+function id = safeId(ME)
+id = ME.identifier; if isempty(id), id = 'FilopodiaTrackingProcess:convert'; end
 end

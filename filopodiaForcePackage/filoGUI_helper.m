@@ -117,17 +117,32 @@ for k = 1:numel(pd)
             fp.(d.name) = v;
     end
 end
+% Save params. lccb setPara validates against the owner (MO) and rejects a
+% bare struct on some versions, so assign funParams_ directly (stable path).
+ok = false;
 try
-    ud.proc.setPara(fp);
-    ud.MD.save();
-    % refresh packageGUI
+    ud.proc.funParams_ = fp;
+    ok = true;
+catch ME1
+    try
+        ud.proc.setPara(fp);
+        ok = true;
+    catch ME2
+        if isvalid(fig)
+            uialert(fig, sprintf('%s\n(fallback: %s)', ME1.message, ME2.message), ...
+                'Error saving params');
+        end
+        return;
+    end
+end
+if ~ok, return; end
+try, ud.MD.save(); catch, end
+try
     handles_main = guidata(ud.mainFig);
     packageGUI('refreshPackage_Callback', handles_main.figure1, [], handles_main);
-catch ME
-    uialert(fig, ME.message, 'Error saving params');
-    return;
+catch
 end
-delete(fig);
+if isvalid(fig), delete(fig); end
 end
 
 function v = gf(s,n,d), if isfield(s,n)&&~isempty(s.(n)), v=s.(n); else, v=d; end, end
