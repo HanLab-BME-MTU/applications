@@ -31,8 +31,8 @@ g = uigridlayout(fig,[1 2]);
 g.ColumnWidth = {360,'1x'}; g.RowHeight = {'1x'};
 
 left = uipanel(g,'Title','Settings');
-sp = uigridlayout(left,[20 2]);
-sp.ColumnWidth = {160,'1x'}; sp.RowHeight = repmat({26},1,20);
+sp = uigridlayout(left,[21 2]);
+sp.ColumnWidth = {160,'1x'}; sp.RowHeight = repmat({26},1,21);
 sp.Padding=[10 10 10 10]; sp.RowSpacing=4;
 
 ud = struct();
@@ -95,6 +95,10 @@ ud.efFrame.Layout.Row=r; ud.efFrame.Layout.Column=2;
 r=r+1;
 ud.btnPreview = uibutton(sp,'Text','Update preview','ButtonPushedFcn',@(~,~)doPreview(fig));
 ud.btnPreview.Layout.Row=r; ud.btnPreview.Layout.Column=[1 2];
+
+r=r+1;
+ud.cbApplyAll = uicheckbox(sp,'Text','Apply settings to all movies','Value',false);
+ud.cbApplyAll.Layout.Row=r; ud.cbApplyAll.Layout.Column=[1 2];
 
 r=r+1;
 ud.btnDone = uibutton(sp,'Text','Done (save to this movie)','ButtonPushedFcn',@(~,~)doApply(fig));
@@ -221,8 +225,10 @@ appliedOK = false;
 try
     ud2.crtPackage  = ud.pkg; ud2.crtProc = ud.proc; ud2.procID = ud.procID;
     ud2.MD = ud.MD; ud2.mainFig = ud.mainFig; ud2.handles_main = guidata(ud.mainFig);
+    ud2.procConstr = @(o,od) feval(class(ud.proc), o, od);
     set(fig,'UserData', mergeStruct(get(fig,'UserData'),ud2));
     handles.figure1 = fig;
+    if isfield(ud,'cbApplyAll') && isvalid(ud.cbApplyAll), handles.checkbox_applytoall = ud.cbApplyAll; end
     processGUI_ApplyFcn(fig, [], handles, ud.proc.funParams_);
     appliedOK = true;
 catch ME
