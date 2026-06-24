@@ -90,8 +90,16 @@ tipIdx = find(tipEligible);
 tipTracks = adhesionTracks(tipIdx);
 
 %% trkOfAdh: adhesion k at frame t -> track index (into adhesionTracks)
-trkOfAdh = cell(1,nF);
-for t=1:nF
+% adhesionInfo may be shorter than movieData.nFrames_ if detection (P2) did
+% not cover every frame; clamp to what is actually available.
+nAdhF = numel(adhesionInfo);
+if nAdhF < nF
+    warning('FilopodiaClassification:frameMismatch', ...
+        'adhesionInfo has %d frames but movie has %d; using %d.', nAdhF, nF, nAdhF);
+end
+nFuse = min(nF, nAdhF);
+trkOfAdh = cell(1,nFuse);
+for t=1:nFuse
     if isempty(adhesionInfo{t}), trkOfAdh{t}=zeros(1,0);
     else, trkOfAdh{t}=zeros(1,numel(adhesionInfo{t})); end
 end
@@ -99,7 +107,7 @@ for i=1:nTr
     tr=adhesionTracks(i);
     for j=1:numel(tr.frames)
         t=tr.frames(j); k=tr.featIdx(j);
-        if t>=1&&t<=nF&&k>=1&&k<=numel(trkOfAdh{t}), trkOfAdh{t}(k)=i; end
+        if t>=1&&t<=nFuse&&k>=1&&k<=numel(trkOfAdh{t}), trkOfAdh{t}(k)=i; end
     end
 end
 
@@ -155,7 +163,7 @@ for f = 1:nFil
         if isempty(base), continue; end
         nreach = nreach+1;
         % shaft adhesions: other adhesions on the ray, nearer body
-        adh = adhesionInfo{t};
+        if t <= numel(adhesionInfo), adh = adhesionInfo{t}; else, adh = []; end
         shIdx = [];
         if ~isempty(adh)
             Af=cat(1,adh.pos); dAf=[adh.dist];
