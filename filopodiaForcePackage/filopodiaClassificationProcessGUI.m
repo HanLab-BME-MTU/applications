@@ -207,8 +207,7 @@ end
 end
 
 % ===================================================================
-function doApply(fig)
-ud = fig.UserData;
+function p = collectParams(ud)
 p = ud.proc.funParams_;
 p.ChannelIndex   = ud.ddChannel.Value;
 p.MinTipLifetime = ud.efLife.Value;
@@ -220,6 +219,12 @@ p.BodyMaxAngle   = ud.efBodyAng.Value;
 p.MinReachFrac   = ud.efReach.Value;
 p.MinBaseSep     = ud.efBaseSep.Value;
 p.LenPenalty     = ud.efLenPen.Value;
+end
+
+% ===================================================================
+function doApply(fig)
+ud = fig.UserData;
+p = collectParams(ud);
 
 ok=false;
 try, ud.proc.setPara(p); ok=true;
