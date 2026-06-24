@@ -33,13 +33,24 @@ classdef FilopodiaDetectionProcess < DetectionProcess
             ip = inputParser;
             ip.addRequired('iChan', @(x) isscalar(x) && obj.checkChanNum(x));
             ip.addOptional('iFrame', 1:obj.owner_.nFrames_, @(x) all(obj.checkFrameNum(x)));
-            ip.addParamValue('output', outputList, @(x) all(ismember(x, outputList)));
+            % default to movieInfo only: u-track's trackMovie calls
+            % loadChannelOutput(iChan) expecting movieInfo as the first output.
+            ip.addParamValue('output', 'movieInfo', @(x) all(ismember(x, outputList)));
             ip.addParamValue('useCache', true, @islogical);
             ip.parse(iChan, varargin{:});
             iFrame = ip.Results.iFrame; output = ip.Results.output;
             if ischar(output), output = {output}; end
-            s = cached.load(obj.outFilePaths_{1, iChan}, '-useCache', ip.Results.useCache, output{:});
+            % only load variables that actually exist in the file (detect mode
+            % determines whether adhesionInfo or filoInfo is present)
+            vars = who('-file', obj.outFilePaths_{1, iChan});
+            loadable = output(ismember(output, vars));
+            if isempty(loadable)
+                error('FilopodiaDetectionProcess:loadChannelOutput', ...
+                    'Requested output (%s) not found in %s', strjoin(output,','), obj.outFilePaths_{1,iChan});
+            end
+            s = cached.load(obj.outFilePaths_{1, iChan}, '-useCache', ip.Results.useCache, loadable{:});
             for k = 1:numel(output)
+                if ~isfield(s, output{k}), varargout{k} = []; continue; end %#ok<AGROW>
                 val = s.(output{k});
                 if numel(iFrame) == 1 && iscell(val), val = val{iFrame};
                 elseif numel(iFrame) == 1 && isstruct(val) && numel(val) >= iFrame

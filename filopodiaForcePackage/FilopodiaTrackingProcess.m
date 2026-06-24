@@ -28,6 +28,29 @@ classdef FilopodiaTrackingProcess < TrackingProcess
                 funParams = ip.Results.funParams;
                 if isempty(funParams)
                     funParams = FilopodiaTrackingProcess.getDefaultParams(owner, outputDir);
+                else
+                    % migrate legacy params (old nearest-neighbour tracker had
+                    % no probDim/costMatrices/gapCloseParam/kalmanFunctions)
+                    needMigrate = ~isfield(funParams,'probDim') || ...
+                        ~isfield(funParams,'costMatrices') || ...
+                        ~isfield(funParams,'kalmanFunctions') || ...
+                        ~isfield(funParams,'gapCloseParam');
+                    if needMigrate
+                        def = FilopodiaTrackingProcess.getDefaultParams(owner, outputDir);
+                        fn = fieldnames(def);
+                        for k = 1:numel(fn)
+                            if ~isfield(funParams, fn{k})
+                                funParams.(fn{k}) = def.(fn{k});
+                            end
+                        end
+                        % ensure the u-track engine fields are present even if a
+                        % stale struct had unrelated leftovers
+                        funParams.probDim         = def.probDim;
+                        funParams.costMatrices    = def.costMatrices;
+                        funParams.kalmanFunctions = def.kalmanFunctions;
+                        funParams.gapCloseParam   = def.gapCloseParam;
+                        funParams.saveResults     = def.saveResults;
+                    end
                 end
                 super_args{1} = owner;
                 super_args{2} = outputDir;
