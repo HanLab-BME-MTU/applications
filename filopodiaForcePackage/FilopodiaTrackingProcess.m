@@ -127,15 +127,41 @@ end
 % =====================================================================
 function appendAdhesionTracks(obj)
 % Convert u-track tracksFinal into adhesionTracks and save into the same
-% per-channel output file, so Processes 4-6 can read it directly.
+% per-channel output file, so Processes 4-6 can read it directly. The
+% detection process's adhesionInfo is passed through so the converter can
+% recover featIdx (adhesion<->track mapping) and dist (distance to body edge).
 MD = obj.getOwner();
 pix = MD.pixelSize_; dt = MD.timeInterval_;
 chans = obj.funParams_.ChannelIndex;
+
+% locate the detection process to pull adhesionInfo
+detIdx = obj.funParams_.DetProcessIndex;
+if isempty(detIdx)
+    detIdx = MD.getProcessIndex('FilopodiaDetectionProcess',1,0);
+end
+
 for i = chans(:)'
     f = obj.outFilePaths_{1, i};
     if isempty(f) || exist(f,'file')~=2, continue; end
     S = load(f, 'tracksFinal');
-    adhesionTracks = tracksFinal2adhesionTracks(S.tracksFinal, pix, dt); %#ok<NASGU>
+
+    adhesionInfo = {};
+    if ~isempty(detIdx)
+        try
+            detProc = MD.processes_{detIdx};
+            df = detProc.outFilePaths_{1, i};
+            if ~isempty(df) && exist(df,'file')==2
+                vars = who('-file', df);
+                if ismember('adhesionInfo', vars)
+                    D = load(df, 'adhesionInfo');
+                    adhesionInfo = D.adhesionInfo;
+                end
+            end
+        catch
+        end
+    end
+
+    adhesionTracks = tracksFinal2adhesionTracks(S.tracksFinal, pix, dt, adhesionInfo); %#ok<NASGU>
     save(f, 'adhesionTracks', '-append');
 end
 end
