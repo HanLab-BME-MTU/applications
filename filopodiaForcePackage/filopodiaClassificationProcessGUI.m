@@ -103,7 +103,7 @@ ud.btnDone.Layout.Row=r; ud.btnDone.Layout.Column=1;
 ud.btnCancel = uibutton(sp,'Text','Cancel','ButtonPushedFcn',@(~,~)delete(fig));
 ud.btnCancel.Layout.Row=r; ud.btnCancel.Layout.Column=2;
 
-right = uipanel(g,'Title','Preview (colored = accepted filopodia tip\rightarrowbase; grey = rejected tips)');
+right = uipanel(g,'Title','Live preview (colored = traced tip\rightarrowbase; grey = no base found)');
 rg = uigridlayout(right,[1 1]); rg.Padding=[6 6 6 6];
 ud.ax = uiaxes(rg); title(ud.ax,'Click "Update preview"'); ud.ax.XTick=[]; ud.ax.YTick=[];
 
@@ -111,6 +111,11 @@ fig.UserData = ud;
 ud.slBright.ValueChangedFcn = @(s,~) doPreview(fig);
 ud.ddChannel.ValueChangedFcn = @(s,~) doPreview(fig);
 ud.efFrame.ValueChangedFcn = @(s,~) doPreview(fig);
+% shaft-tracing params recompute the preview live (true tuning)
+ud.efMaxShaft.ValueChangedFcn = @(s,~) doPreview(fig);
+ud.efBodyAng.ValueChangedFcn  = @(s,~) doPreview(fig);
+ud.efTipDist.ValueChangedFcn  = @(s,~) doPreview(fig);
+ud.efShaftBand.ValueChangedFcn= @(s,~) doPreview(fig);
 fig.UserData = ud;
 
 doPreview(fig);
@@ -123,60 +128,64 @@ ud = fig.UserData;
 fr = min(max(round(ud.efFrame.Value),1),ud.MD.nFrames_);
 iChan = ud.ddChannel.Value;
 img = double(ud.MD.channels_(iChan).loadImage(fr));
+p = collectParams(ud);
 
 imshow(img,[],'Parent',ud.ax); hold(ud.ax,'on');
 mn=min(img(:)); mx=max(img(:)); b=1; try, b=ud.slBright.Value; catch, end
 if mx>mn, hi=mn+b*(mx-mn); if hi<=mn, hi=mn+1e-6; end, ud.ax.CLim=[mn hi]; end
 
-% body outline for context
+% body outline for this frame
 bodyMask = loadBodyMask(ud.MD, fr, iChan);
 if ~isempty(bodyMask)&&any(bodyMask(:))
     B=bwboundaries(bodyMask); for k=1:numel(B), plot(ud.ax,B{k}(:,2),B{k}(:,1),'c-','LineWidth',0.8); end
 end
 
-[filo, rejXY] = loadClassification(ud.MD, iChan, fr);
-if isempty(filo) && isempty(rejXY)
+% tips present in this frame, taken from the P3 tracks (live, not from a
+% previous P4 run), then shaft-traced with the CURRENT parameters.
+tipXY = loadTipsAtFrame(ud.MD, iChan, fr);
+if isempty(tipXY)
     hold(ud.ax,'off');
-    title(ud.ax, sprintf('frame %d   (no classification yet: run P4)', fr));
+    title(ud.ax, sprintf('frame %d   (no tracks: run P3 first)', fr));
     ud.ax.XTick=[]; ud.ax.YTick=[]; return;
 end
 
-% rejected tips (grey dots)
-if ~isempty(rejXY), plot(ud.ax,rejXY(:,1),rejXY(:,2),'.','Color',[0.6 0.6 0.6],'MarkerSize',8); end
-
-% accepted filopodia: tip->base shaft, colored per filopodium
-cmap = lines(7); nAcc = 0;
+filo = classifyFilopodiaPreviewFrame(tipXY, bodyMask, p);
+cmap = lines(7); nAcc=0; nRej=0;
 for f = 1:numel(filo)
-    j = find(filo(f).frames==fr,1);
-    if isempty(j), continue; end
-    nAcc = nAcc + 1;
-    c = cmap(mod(f-1,7)+1,:);
-    tp = filo(f).tipPos(j,:); bp = filo(f).basePos(j,:);
-    plot(ud.ax,[bp(1) tp(1)],[bp(2) tp(2)],'-','Color',c,'LineWidth',1.5);
-    plot(ud.ax,tp(1),tp(2),'.','Color',c,'MarkerSize',12);
-    plot(ud.ax,bp(1),bp(2),'o','Color',c,'MarkerSize',4,'LineWidth',1);
+    tp = filo(f).tipPos;
+    if filo(f).accepted
+        nAcc = nAcc + 1; c = cmap(mod(f-1,7)+1,:);
+        bp = filo(f).basePos;
+        plot(ud.ax,[bp(1) tp(1)],[bp(2) tp(2)],'-','Color',c,'LineWidth',1.5);
+        plot(ud.ax,tp(1),tp(2),'.','Color',c,'MarkerSize',12);
+        plot(ud.ax,bp(1),bp(2),'o','Color',c,'MarkerSize',4,'LineWidth',1);
+    else
+        nRej = nRej + 1;
+        plot(ud.ax,tp(1),tp(2),'.','Color',[0.6 0.6 0.6],'MarkerSize',9);
+    end
 end
 hold(ud.ax,'off');
-title(ud.ax, sprintf('frame %d   accepted=%d   rejected=%d', fr, nAcc, size(rejXY,1)));
+title(ud.ax, sprintf('frame %d   traced=%d   no-base=%d   (live preview)', fr, nAcc, nRej));
 ud.ax.XTick=[]; ud.ax.YTick=[];
 end
 
 % ===================================================================
-function [filo, rejXY] = loadClassification(MD, iChan, fr)
-filo = []; rejXY = zeros(0,2);
+function tipXY = loadTipsAtFrame(MD, iChan, fr)
+% tip candidate positions in this frame = all tracked positions present at fr
+tipXY = zeros(0,2);
 try
-    ip = MD.getProcessIndex('FilopodiaClassificationProcess',1,0);
+    ip = MD.getProcessIndex('FilopodiaTrackingProcess',1,0);
     if isempty(ip), return; end
     pr = MD.processes_{ip};
     f = pr.outFilePaths_{1,iChan};
-    if isempty(f)||exist(f,'file')~=2, f = fullfile(pr.funParams_.OutputDirectory,'filoClassification.mat'); end
+    if isempty(f)||exist(f,'file')~=2, f = fullfile(pr.funParams_.OutputDirectory,'filoTracks.mat'); end
     if exist(f,'file')~=2, return; end
-    S = load(f,'filopodia','roleByTrack','posByFrame');
-    filo = S.filopodia;
-    % rejected tip positions at this frame: tracks whose role is not 'tip'
-    if isfield(S,'posByFrame') && isfield(S,'roleByTrack') && fr<=numel(S.posByFrame)
-        P = S.posByFrame{fr};
-        if ~isempty(P) && size(P,2)>=2, rejXY = P(:,1:2); end
+    vars = who('-file', f);
+    if ~ismember('adhesionTracks', vars), return; end
+    S = load(f,'adhesionTracks'); T = S.adhesionTracks;
+    for t = 1:numel(T)
+        j = find(T(t).frames==fr,1);
+        if ~isempty(j), tipXY(end+1,:) = T(t).pos(j,:); end %#ok<AGROW>
     end
 catch
 end
