@@ -309,7 +309,11 @@ try
     ud2.MD          = ud.MD;
     ud2.mainFig     = ud.mainFig;
     ud2.handles_main = guidata(ud.mainFig);   % main packageGUI handles (required by ApplyFcn)
-    ud2.procConstr = @(o,od) feval(class(ud.proc), o, od);
+    % Only create a new process on other movies if they don't already have one
+    % of this class. Passing an empty procConstr prevents processGUI_ApplyFcn
+    % from adding a duplicate when apply-to-all runs on a movie that already
+    % has this process registered.
+    ud2.procConstr = @(o,od) safeGetOrCreateProc(o, od, class(ud.proc));
     set(fig, 'UserData', mergeStruct(get(fig,'UserData'), ud2));
     handles.figure1 = fig;
     if isfield(ud,'cbApplyAll') && isvalid(ud.cbApplyAll), handles.checkbox_applytoall = ud.cbApplyAll; end
