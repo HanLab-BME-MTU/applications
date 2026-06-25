@@ -53,24 +53,32 @@ for k = 1:numel(ML.movies_)
         if numel(idxs) > 1
             fprintf('movie %d: %d duplicates of %s -> keeping index %d, removing %s\n', ...
                 k, numel(idxs)-1, cls, idxs(end), mat2str(idxs(1:end-1)));
-            % remove all but the last (most recently added = best result)
-            % delete in reverse order so indices don't shift
-            for di = fliplr(idxs(1:end-1))
+            % keep the last one; delete earlier duplicates in reverse order
+            % so each deletion doesn't shift the indices of remaining targets
+            toRemove = sort(idxs(1:end-1), 'descend');
+            for di = toRemove
                 try
-                    MD.processes_(di) = [];
+                    proc_del = MD.processes_{di};
+                    MD.deleteProcess(proc_del);
                 catch
-                    try, MD.deleteProcess(MD.processes_{di}); catch, end
+                    % deleteProcess may fail on invalid handles; try direct removal
+                    try
+                        if di <= numel(MD.processes_)
+                            MD.processes_(di) = [];
+                        end
+                    catch
+                    end
                 end
             end
             changed = true;
+        end
 
-            % re-find the surviving process
-            idxs = [];
-            for i = 1:numel(MD.processes_)
-                p = MD.processes_{i};
-                if ~isempty(p) && strcmp(class(p), cls)
-                    idxs(end+1) = i; %#ok<AGROW>
-                end
+        % re-find the surviving process after any deletions
+        idxs = [];
+        for i = 1:numel(MD.processes_)
+            p = MD.processes_{i};
+            if ~isempty(p) && strcmp(class(p), cls)
+                idxs(end+1) = i; %#ok<AGROW>
             end
         end
 
