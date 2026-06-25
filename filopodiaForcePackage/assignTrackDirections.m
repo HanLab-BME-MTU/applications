@@ -20,17 +20,17 @@ function trackDir = assignTrackDirections(tipTracks, adhesionInfo, trkOfAdh, ...
 % Sangyoon J. Han / 2026
 
 [H, W] = size(bodyByFrame{find(~cellfun(@isempty,bodyByFrame),1)});
-maxLen   = gf(p,'MaxShaftLen',160);
-sweepRng = gf(p,'SweepRange',40);
+maxLen   = gf(p,'MaxShaftLen',200);
+sweepRng = gf(p,'SweepRange',60);    % wider sweep around seed direction
 sweepStp = gf(p,'SweepStep',2);
-bodyMax  = gf(p,'BodyMaxAngle',75);  % wider: allows near-tangential filopodia
+bodyMax  = gf(p,'BodyMaxAngle',150); % allow near-tangential filopodia
 band     = gf(p,'ShaftBand',4);
 wShaft   = gf(p,'WShaft',0.0);
-wLen     = gf(p,'WLen',0.25);
+wLen     = gf(p,'WLen',0.15);        % weaker length penalty
 wPrior   = gf(p,'WPrior',0.0);
-wOverlap = gf(p,'WOverlap',0.8);
-wBaseSep = gf(p,'WBaseSep',0.7);
-minSep   = gf(p,'MinBaseSep',8);
+wOverlap = gf(p,'WOverlap',0.3);     % softer overlap penalty (dense filopodia)
+wBaseSep = gf(p,'WBaseSep',0.3);     % softer base-sep penalty
+minSep   = gf(p,'MinBaseSep',6);     % smaller min base separation
 neighR   = gf(p,'NeighRadius',60);
 nF       = numel(bodyByFrame);
 
@@ -245,7 +245,7 @@ for s=1:1.5:maxLen
     if bodyMask(iy,ix),hit=[x y s];break;end
     oss=oss+abs(cos(theta(iy,ix)-ang));nO=nO+1;
 end
-if isempty(hit)||nO<3,osc=-inf;hit=[];else,osc=oss/nO;end
+if isempty(hit)||nO<1,osc=-inf;hit=[];else,osc=oss/nO;end
 end
 
 function L = rayLen(tipXY,ang,bodyMask,maxLen,H,W)

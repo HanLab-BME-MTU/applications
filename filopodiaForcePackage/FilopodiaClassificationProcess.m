@@ -128,29 +128,29 @@ classdef FilopodiaClassificationProcess < DataProcessingProcess
             funParams.SegProcessIndex = [];     % []->find FilopodiaSegmentationProcess
             funParams.DetProcessIndex = [];     % []->find FilopodiaDetectionProcess
             % --- tip eligibility (only WELL-TRACKED adhesions drive geometry) ---
-            funParams.MinTipLifetime  = 5;      % frames; tip track must persist this long
-            funParams.MinLinearFrac   = 0.85;   % trajectory variance fraction on principal axis (linear)
-            funParams.MinTrajSpread   = 3;      % px; below this a track is "stationary" (linearity n/a)
-            funParams.MinTipDist      = 6;      % px; tip must reach at least this far from body
+            funParams.MinTipLifetime  = 5;      % frames
+            funParams.MinLinearFrac   = 0.6;    % lower: allow lateral-sweeping filopodia
+            funParams.MinTrajSpread   = 3;      % px; below this = stationary (linearity n/a)
+            funParams.MinTipDist      = 6;      % px
             % --- shaft assignment & joint assembly ---
-            funParams.ShaftBand       = 4;      % px; adhesion within this of tip->base line = shaft adhesion
-            funParams.WShaft          = 0.0;    % 0 = steerable only; raise to reward passing shaft adhesions (use as tie-breaker)
-            funParams.WLen            = 0.25;   % small length penalty (smaller -> deeper base)
-            funParams.WPrior          = 0.0;    % 0 = no neighbor prior; raise for smoother angular field across filopodia
-            funParams.WOverlap        = 0.8;    % penalty if shaft crosses an already-fixed shaft
-            funParams.WBaseSep        = 0.7;    % penalty if base is near an already-fixed base
-            funParams.MinBaseSep      = 8;      % px; minimum spacing between distinct filopodium bases
-            funParams.NeighRadius     = 60;     % px; neighborhood for direction prior
-            % --- straight shaft direction (see assembleFilopodiaFrame) ---
-            funParams.MaxShaftLen     = 160;    % px; max shaft length (tip reach)
-            funParams.SweepRange      = 35;     % deg; direction sweep around ridge/body-ward
-            funParams.SweepStep       = 3;      % deg; sweep step
-            funParams.BodyMaxAngle    = 75;     % deg; shaft must be within this of body-ward (wider for tangential filopodia)
-            funParams.AlignBand       = 3.5;    % px; perpendicular band for collinear tip support
-            funParams.AlignWeight     = 0.12;   % weight of collinear support in direction score
-            funParams.LenPenalty      = 0.6;    % penalty on shaft length (prefer radial)
-            funParams.MinReachFrac    = 0.5;    % accept tip track if it acts as tip in >= this fraction of its frames
-            funParams.VelSmoothWin    = 3;      % frames; smoothing for dL/dt
+            funParams.ShaftBand       = 4;      % px
+            funParams.WShaft          = 0.0;
+            funParams.WLen            = 0.15;   % weaker length penalty
+            funParams.WPrior          = 0.0;
+            funParams.WOverlap        = 0.3;    % softer: dense filopodia should not block each other
+            funParams.WBaseSep        = 0.3;    % softer base-sep penalty
+            funParams.MinBaseSep      = 6;      % px
+            funParams.NeighRadius     = 60;     % px
+            % --- straight shaft direction ---
+            funParams.MaxShaftLen     = 200;    % px
+            funParams.SweepRange      = 60;     % deg; wider sweep
+            funParams.SweepStep       = 2;      % deg
+            funParams.BodyMaxAngle    = 150;    % deg; allow near-tangential filopodia
+            funParams.AlignBand       = 3.5;    % px
+            funParams.AlignWeight     = 0.12;
+            funParams.LenPenalty      = 0.6;
+            funParams.MinReachFrac    = 0.5;
+            funParams.VelSmoothWin    = 3;
             funParams.OutputDirectory = [outputDir filesep 'FilopodiaForcePackage' filesep 'FilopodiaClassification'];
         end
     end

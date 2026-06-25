@@ -140,7 +140,7 @@ filTipFrames = cell(1,nFil); filTipLen = cell(1,nFil);
 filTipPos = cell(1,nFil);    filBase   = cell(1,nFil);
 H = size(bodyByFrame{find(~cellfun(@isempty,bodyByFrame),1)},1);
 W = size(bodyByFrame{find(~cellfun(@isempty,bodyByFrame),1)},2);
-maxLen = getfielddef(p,'MaxShaftLen',160);
+maxLen = getfielddef(p,'MaxShaftLen',200);
 
 progressText(0,'Pass B: per-frame projection','Filopodia P4 pass B');
 for f = 1:nFil
