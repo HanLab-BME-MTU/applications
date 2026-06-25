@@ -22,7 +22,7 @@ proc = pkg.getProcess(procID);
 if isempty(proc)
     constrs = pkg.getDefaultProcessConstructors(procID);
     proc = constrs{1}(MD, MD.outputDirectory_);
-    MD.addProcess(proc);
+    pkg.setProcess(procID, proc);  % link to package slot only, do NOT addProcess to MD
 end
 fp = proc.funParams_;
 
