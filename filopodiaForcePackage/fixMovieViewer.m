@@ -23,8 +23,8 @@ function fixMovieViewer(varargin)
 
 ip = inputParser;
 ip.addOptional('hFig', [], @(x) isempty(x) || ishandle(x));
-ip.addParameter('vscale',   0.5, @(x) isnumeric(x) && x>0 && x<=1);
-ip.addParameter('fontSize', 5,    @(x) isnumeric(x) && x>=4);
+ip.addParameter('vscale',   0.65, @(x) isnumeric(x) && x>0 && x<=1);
+ip.addParameter('fontSize', 8,    @(x) isnumeric(x) && x>=4);
 ip.addParameter('force', false,   @islogical);
 ip.parse(varargin{:});
 hFig     = ip.Results.hFig;

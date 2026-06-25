@@ -233,7 +233,8 @@ try
     % of this class. Passing an empty procConstr prevents processGUI_ApplyFcn
     % from adding a duplicate when apply-to-all runs on a movie that already
     % has this process registered.
-    ud2.procConstr = @(o,od) safeGetOrCreateProc(o, od, class(ud.proc));
+    % Do not pass procConstr: prevents ApplyFcn from creating duplicate processes.
+    % Params are applied to existing processes only (parseProcessParams).
     set(fig,'UserData', mergeStruct(get(fig,'UserData'),ud2));
     handles.figure1 = fig;
     if isfield(ud,'cbApplyAll') && isvalid(ud.cbApplyAll), handles.checkbox_applytoall = ud.cbApplyAll; end
