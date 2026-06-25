@@ -24,7 +24,7 @@ inFilePaths = cell(1, numel(movieData.channels_));
 inFilePaths{1, iChan} = movieData.getChannelPaths{iChan};
 proc.setInFilePaths(inFilePaths);
 
-outDir = p.OutputDirectory; mkClrDir(outDir);
+outDir = p.OutputDirectory; mkdirRobust(outDir);
 outFilePaths = cell(1, numel(movieData.channels_));
 outFilePaths{1, iChan} = outDir;
 proc.setOutFilePaths(outFilePaths);

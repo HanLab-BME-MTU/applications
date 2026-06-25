@@ -45,7 +45,7 @@ adhesionTracks = Strk.adhesionTracks; tracksFinalAll = Strk.tracksFinal;
 %% I/O
 inFilePaths = cell(1,numel(movieData.channels_)); inFilePaths{1,iChan} = trkFile;
 proc.setInFilePaths(inFilePaths);
-outDir = p.OutputDirectory; mkClrDir(outDir);
+outDir = p.OutputDirectory; mkdirRobust(outDir);
 outFile = fullfile(outDir,'filoClassification.mat');
 outFilePaths = cell(1,numel(movieData.channels_)); outFilePaths{1,iChan} = outFile;
 proc.setOutFilePaths(outFilePaths);

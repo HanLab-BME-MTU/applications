@@ -49,7 +49,7 @@ if ~isempty(p.WindowSize), psArgs = [psArgs, {'WindowSize', p.WindowSize}]; end
 inFilePaths = cell(1, numel(movieData.channels_));
 inFilePaths{1, iChan} = segOutDir;
 proc.setInFilePaths(inFilePaths);
-outDir = p.OutputDirectory; mkClrDir(outDir);
+outDir = p.OutputDirectory; mkdirRobust(outDir);
 outFile = fullfile(outDir, 'filoDetection.mat');
 outFilePaths = cell(1, numel(movieData.channels_));
 outFilePaths{1, iChan} = outFile;

@@ -47,7 +47,7 @@ end
 %% I/O
 inFilePaths = cell(1, numel(movieData.channels_)); inFilePaths{1,iChan} = clsFile;
 proc.setInFilePaths(inFilePaths);
-outDir = p.OutputDirectory; mkClrDir(outDir);
+outDir = p.OutputDirectory; mkdirRobust(outDir);
 outFile = fullfile(outDir, 'filoStats.mat');
 outFilePaths = cell(1, numel(movieData.channels_)); outFilePaths{1,iChan} = outFile;
 proc.setOutFilePaths(outFilePaths);
