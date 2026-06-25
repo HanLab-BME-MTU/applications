@@ -84,6 +84,7 @@ for k = 1:numel(ML.movies_)
 
         if isempty(idxs), continue; end
         proc = MD.processes_{idxs(1)};
+        if isempty(proc) || ~isvalid(proc), continue; end
 
         % fix OutputDirectory if it doesn't belong to this movie
         if isKey(procSubdirs, cls)
