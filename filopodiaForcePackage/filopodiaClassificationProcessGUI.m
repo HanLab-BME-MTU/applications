@@ -18,9 +18,17 @@ ud_main = get(mainFig,'UserData');
 pkg = ud_main.crtPackage; MD = pkg.getOwner();
 proc = pkg.getProcess(procID);
 if isempty(proc)
+    % Create process only if not already in MD.processes_ (prevents duplicates).
+    % Then link to the package slot so packageGUI tracks it correctly.
     constrs = pkg.getDefaultProcessConstructors(procID);
     proc = constrs{1}(MD, MD.outputDirectory_);
-    pkg.setProcess(procID, proc);  % link to package slot only, do NOT addProcess to MD
+    existIdx = MD.getProcessIndex(class(proc), 1, 0);
+    if isempty(existIdx)
+        MD.addProcess(proc);
+    else
+        proc = MD.processes_{existIdx};  % reuse existing
+    end
+    pkg.setProcess(procID, proc);
 end
 fp = proc.funParams_;
 
