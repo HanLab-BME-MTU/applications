@@ -297,6 +297,10 @@ end
 % the standard lccb settings windows do. processGUI_ApplyFcn reads its state
 % from handles.figure1's UserData (crtProc/crtPackage/procID/MD/mainFig), so
 % assemble that structure and call it.
+    % Never let 'apply to all' propagate OutputDirectory: each movie must
+    % keep its own output path. Strip it before passing to processGUI_ApplyFcn.
+    safeParams = ud.proc.funParams_;
+    if isfield(safeParams,'OutputDirectory'), safeParams = rmfield(safeParams,'OutputDirectory'); end
 appliedOK = false;
 try
     ud2.crtPackage  = ud.pkg;
@@ -309,7 +313,7 @@ try
     set(fig, 'UserData', mergeStruct(get(fig,'UserData'), ud2));
     handles.figure1 = fig;
     if isfield(ud,'cbApplyAll') && isvalid(ud.cbApplyAll), handles.checkbox_applytoall = ud.cbApplyAll; end
-    processGUI_ApplyFcn(fig, [], handles, ud.proc.funParams_);
+    processGUI_ApplyFcn(fig, [], handles, safeParams);
     appliedOK = true;
 catch ME
     fprintf(2,'[filopodiaSegmentationProcessGUI] processGUI_ApplyFcn failed: %s\n', ME.message);

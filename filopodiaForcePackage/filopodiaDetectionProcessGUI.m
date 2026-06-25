@@ -221,6 +221,10 @@ try, ud.MD.save(); catch ME
     if isvalid(fig), uialert(fig, ME.message, 'Saved params but MD.save failed'); end
 end
 
+    % Never let 'apply to all' propagate OutputDirectory: each movie must
+    % keep its own output path. Strip it before passing to processGUI_ApplyFcn.
+    safeParams = ud.proc.funParams_;
+    if isfield(safeParams,'OutputDirectory'), safeParams = rmfield(safeParams,'OutputDirectory'); end
 appliedOK = false;
 try
     ud2.crtPackage  = ud.pkg; ud2.crtProc = ud.proc; ud2.procID = ud.procID;
@@ -229,7 +233,7 @@ try
     set(fig,'UserData', mergeStruct(get(fig,'UserData'),ud2));
     handles.figure1 = fig;
     if isfield(ud,'cbApplyAll') && isvalid(ud.cbApplyAll), handles.checkbox_applytoall = ud.cbApplyAll; end
-    processGUI_ApplyFcn(fig, [], handles, ud.proc.funParams_);
+    processGUI_ApplyFcn(fig, [], handles, safeParams);
     appliedOK = true;
 catch ME
     fprintf(2,'[filopodiaDetectionProcessGUI] processGUI_ApplyFcn failed: %s\n', ME.message);
