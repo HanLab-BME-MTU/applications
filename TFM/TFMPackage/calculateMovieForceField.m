@@ -279,7 +279,7 @@ else
                 'running displacement field calclation tracking!'])
         end
         %Parse input, store in parameter structure
-        refFrame = double(imread(SDCProc.outFilePaths_{2,1})); %pDisp.ChannelIndex}));
+        refFrame = double(imread(SDCProc.outFilePaths_{2,pDisp.ChannelIndex})); %1})); %
         firstMask = false(size(refFrame));
     else
         firstMask = maskArray(:,:,1);
